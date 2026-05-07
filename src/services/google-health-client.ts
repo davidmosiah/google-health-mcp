@@ -262,7 +262,7 @@ export class GoogleHealthClient {
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/json",
       "Content-Type": "application/json",
-      "User-Agent": "google-health-mcp-server/0.1.0"
+      "User-Agent": "google-health-mcp-server/0.1.1"
     };
   }
 
@@ -270,7 +270,7 @@ export class GoogleHealthClient {
     return {
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
-      "User-Agent": "google-health-mcp-server/0.1.0"
+      "User-Agent": "google-health-mcp-server/0.1.1"
     };
   }
 

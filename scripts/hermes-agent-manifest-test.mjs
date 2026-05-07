@@ -115,7 +115,7 @@ try {
   const mergedConfig = readFileSync(join(mergeDir, '.hermes', 'config.yaml'), 'utf8');
   assert.equal((mergedConfig.match(/^mcp_servers:/gm) ?? []).length, 1, 'Hermes setup should merge into an existing mcp_servers block instead of duplicating it.');
   assert.match(mergedConfig, /existing_health_mcp:/);
-  assert.match(mergedConfig, /google-health:/);
+  assert.match(mergedConfig, /google_health:/);
   assert.match(mergedConfig, new RegExp(pinnedPackage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   rmSync(mergeDir, { recursive: true, force: true });
 

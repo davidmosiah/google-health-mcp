@@ -88,7 +88,7 @@ export function buildAgentManifest(client: AgentClientName = "generic") {
       use_direct_tools: true,
       avoid_terminal_workarounds: true,
       no_gateway_restart_for_data_access: true,
-      reload_after_config_change: "/reload-mcp or hermes mcp test google-health",
+      reload_after_config_change: "/reload-mcp or hermes mcp test google_health",
       doctor_command: "npx -y google-health-mcp-unofficial doctor --client hermes --json"
     },
     agent_rules: [
@@ -103,7 +103,7 @@ export function buildAgentManifest(client: AgentClientName = "generic") {
       { symptom: "missing GOOGLE_HEALTH_CLIENT_ID / GOOGLE_HEALTH_CLIENT_SECRET / GOOGLE_HEALTH_REDIRECT_URI", action: "Run `google-health-mcp-server setup` or set GOOGLE_HEALTH_* env vars after enabling Google Health API in Google Cloud." },
       { symptom: "401 or expired token", action: "Run `google-health-mcp-server auth` again; tokens refresh automatically when refresh_token is present." },
       { symptom: "permission or insufficient scope", action: "Re-authorize with the read-only Google Health scopes returned by google_health_data_inventory." },
-      { symptom: "Hermes configured but tools unavailable", action: "Run `/reload-mcp` or `hermes mcp test google-health`; do not restart gateway for normal reload." }
+      { symptom: "Hermes configured but tools unavailable", action: "Run `/reload-mcp` or `hermes mcp test google_health`; do not restart gateway for normal reload." }
     ],
     links: {
       github: "https://github.com/davidmosiah/google-health-mcp",
@@ -151,7 +151,7 @@ ${manifest.agent_rules.map((rule) => `- ${rule}`).join("\n")}
 }
 
 export function hermesConfigSnippet(): string {
-  return `mcp_servers:\n  google-health:\n    command: npx\n    args:\n      - -y\n      - ${PINNED_NPM_PACKAGE}\n    timeout: 120\n    connect_timeout: 60\n    sampling:\n      enabled: false`;
+  return `mcp_servers:\n  google_health:\n    command: npx\n    args:\n      - -y\n      - ${PINNED_NPM_PACKAGE}\n    timeout: 120\n    connect_timeout: 60\n    sampling:\n      enabled: false`;
 }
 
 export function hermesSkillMarkdown(): string {
@@ -165,6 +165,6 @@ Use this skill whenever a user asks Hermes to inspect Google Health API v4 activ
 - Treat Google Health data as sensitive. Do not request raw payloads unless the user explicitly asks.
 - Use kebab-case data types in endpoints and snake_case data type names in filters.
 - Do not diagnose or treat medical conditions.
-- Reload MCP with \`/reload-mcp\` or \`hermes mcp test google-health\`; do not restart the gateway for normal data access.
+- Reload MCP with \`/reload-mcp\` or \`hermes mcp test google_health\`; do not restart the gateway for normal data access.
 `;
 }

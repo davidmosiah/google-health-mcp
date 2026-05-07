@@ -16,7 +16,7 @@ MCP config:
 ```json
 {
   "mcpServers": {
-    "google-health": {
+    "google_health": {
       "command": "npx",
       "args": ["-y", "google-health-mcp-unofficial"]
     }

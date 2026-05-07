@@ -198,7 +198,7 @@ async function inspectHermesClient(homeDir: string): Promise<HermesClientCheck> 
     const check = {
       ...base,
       config_exists: config.exists,
-      google_health_server_configured: /google-health-mcp-unofficial|google-health-mcp-server|google-health-mcp/.test(configText) && /^\s*google-health\s*:/m.test(configText),
+      google_health_server_configured: /google-health-mcp-unofficial|google-health-mcp-server|google-health-mcp/.test(configText) && /^\s*google[-_]health\s*:/m.test(configText),
       package_pinned: /google-health-mcp-unofficial@\d+\.\d+\.\d+/.test(configText),
       mcp_reload_confirmation_disabled: config.exists ? /mcp_reload_confirm\s*:\s*false/.test(configText) : undefined,
       skill_installed: skillExists
@@ -234,7 +234,7 @@ function buildHermesRecommendations(check: Omit<HermesClientCheck, "recommendati
   if (!check.config_exists) {
     recommendations.push("Run `google-health-mcp-server setup --client hermes --no-auth` to create a Hermes MCP config and local Hermes skill.");
   } else if (!check.google_health_server_configured) {
-    recommendations.push("Add a `google-health` MCP server block to `~/.hermes/config.yaml`.");
+    recommendations.push("Add a `google_health` MCP server block to `~/.hermes/config.yaml`.");
   }
   if (check.config_exists && check.google_health_server_configured && !check.package_pinned) {
     recommendations.push(`Pin the Hermes MCP command to \`${PINNED_NPM_PACKAGE}\` to avoid stale npx cache surprises.`);
@@ -245,7 +245,7 @@ function buildHermesRecommendations(check: Omit<HermesClientCheck, "recommendati
   if (check.config_exists && check.mcp_reload_confirmation_disabled !== true) {
     recommendations.push("Optional for lower friction: set `approvals.mcp_reload_confirm: false` if your Hermes policy allows MCP reload without confirmation.");
   }
-  recommendations.push("After Hermes config changes, use `/reload-mcp` or `hermes mcp test google-health`; do not run `hermes gateway restart` for normal Google Health data access.");
+  recommendations.push("After Hermes config changes, use `/reload-mcp` or `hermes mcp test google_health`; do not run `hermes gateway restart` for normal Google Health data access.");
   return recommendations;
 }
 

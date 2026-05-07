@@ -46,7 +46,7 @@ Standalone MCP config:
 ```json
 {
   "mcpServers": {
-    "google-health": {
+    "google_health": {
       "command": "npx",
       "args": ["-y", "google-health-mcp-unofficial"]
     }
@@ -129,10 +129,10 @@ users/me/dataSourceFamilies/google-sources
 npx -y google-health-mcp-unofficial setup --client hermes --no-auth
 npx -y google-health-mcp-unofficial auth
 npx -y google-health-mcp-unofficial doctor --client hermes
-hermes mcp test google-health
+hermes mcp test google_health
 ```
 
-After config changes, use `/reload-mcp` or `hermes mcp test google-health`. Do not restart the gateway for normal data access.
+After config changes, use `/reload-mcp` or `hermes mcp test google_health`. Do not restart the gateway for normal data access.
 
 ## Development
 

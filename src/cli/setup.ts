@@ -201,7 +201,7 @@ function mergeClaudeConfig(homeDir: string): string {
     ...existing,
     mcpServers: {
       ...mcpServers,
-      "google-health": mcpConfigSnippet().mcpServers["google-health"]
+      "google_health": mcpConfigSnippet().mcpServers["google_health"]
     }
   };
   writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 });
@@ -212,7 +212,7 @@ function mergeClaudeConfig(homeDir: string): string {
 function mcpConfigSnippet() {
   return {
     mcpServers: {
-      "google-health": {
+      "google_health": {
         command: "npx",
         args: ["-y", NPM_PACKAGE_NAME]
       }
@@ -235,7 +235,7 @@ function writeHermesClientConfig(homeDir: string): ClientConfigResult {
     hermes_skill_path: skillPath,
     hermes_config_backup_path: backupPath,
     warnings: [
-      "After editing Hermes MCP config, use `/reload-mcp` or `hermes mcp test google-health`; do not restart the Hermes gateway for normal Google Health data access.",
+      "After editing Hermes MCP config, use `/reload-mcp` or `hermes mcp test google_health`; do not restart the Hermes gateway for normal Google Health data access.",
       `Hermes config pins ${PINNED_NPM_PACKAGE} to avoid stale npx cache behavior.`
     ]
   };
@@ -250,7 +250,7 @@ function mergeHermesConfig(configPath: string): string | undefined {
   }
 
   const existing = readFileSync(configPath, "utf8");
-  if (/google-health-mcp-unofficial|google-health-mcp-server|google-health-mcp/.test(existing) && /^\s*google-health\s*:/m.test(existing)) {
+  if (/google-health-mcp-unofficial|google-health-mcp-server|google-health-mcp/.test(existing) && /^\s*google[-_]health\s*:/m.test(existing)) {
     if (existing.includes(PINNED_NPM_PACKAGE)) return undefined;
     const backupPath = backupConfig(configPath);
     const updated = existing.replace(/google-health-mcp-unofficial(?:@\d+\.\d+\.\d+)?/g, PINNED_NPM_PACKAGE);
@@ -268,7 +268,7 @@ function mergeHermesConfig(configPath: string): string | undefined {
 
 function addHermesGoogleHealthBlock(existing: string): string {
   const serverBlock = [
-    "  google-health:",
+    "  google_health:",
     "    command: npx",
     "    args:",
     "      - -y",
@@ -301,7 +301,7 @@ function ensureReloadHint(text: string): string {
 function setupNextStep(client: AgentClientName, noAuth: boolean): string {
   const auth = noAuth ? "Run `google-health-mcp-server auth`, then " : "";
   if (client === "hermes") {
-    return `${auth}run \`google-health-mcp-server doctor --client hermes\`, then use \`/reload-mcp\` or \`hermes mcp test google-health\`.`;
+    return `${auth}run \`google-health-mcp-server doctor --client hermes\`, then use \`/reload-mcp\` or \`hermes mcp test google_health\`.`;
   }
   return `${auth}run \`google-health-mcp-server doctor\`.`;
 }
