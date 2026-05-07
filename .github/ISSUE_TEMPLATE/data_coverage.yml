@@ -1,0 +1,24 @@
+name: Data coverage request
+description: Request support for more official Google Health API data
+labels: [enhancement, data coverage]
+body:
+  - type: markdown
+    attributes:
+      value: "Requests should point to official Google Health API docs when possible. This project does not use private/internal Google Health APIs."
+  - type: input
+    id: endpoint
+    attributes:
+      label: Official Google Health API endpoint or doc URL
+      placeholder: https://developers.fitbit.com/docs/reference/
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Agent use case
+      description: What should an AI agent be able to answer or do with this data?
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy considerations
+      description: Does this data include sensitive health details, location, identity, or anything that should be redacted?

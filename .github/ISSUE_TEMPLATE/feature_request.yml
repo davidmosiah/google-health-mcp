@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest a Google Health MCP improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: What should agents be able to do?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the tool/resource/prompt or workflow.

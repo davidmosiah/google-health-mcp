@@ -1,0 +1,34 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#020605"/>
+  <defs>
+    <radialGradient id="core" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(860 260) rotate(90) scale(230)">
+      <stop stop-color="#20f6a4" stop-opacity="0.55"/>
+      <stop offset="0.55" stop-color="#00b0b9" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#020605" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="line" x1="650" y1="410" x2="1110" y2="410" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b7ff5a"/>
+      <stop offset="0.52" stop-color="#20f6a4"/>
+      <stop offset="1" stop-color="#47c7ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="40" y="40" width="1120" height="550" rx="44" fill="#07110e" stroke="#caffdf" stroke-opacity="0.14"/>
+  <circle cx="860" cy="260" r="240" fill="url(#core)"/>
+  <circle cx="860" cy="260" r="120" stroke="#caffdf" stroke-opacity="0.14" stroke-width="2"/>
+  <circle cx="860" cy="260" r="190" stroke="#20f6a4" stroke-opacity="0.16" stroke-width="2"/>
+  <path d="M640 420 H708 L728 370 L756 468 L786 420 H850 L872 420 L896 392 L920 452 L946 420 H1015 L1038 352 L1070 488 L1098 420" stroke="url(#line)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="92" y="128" fill="#20f6a4" font-family="Menlo, monospace" font-size="24" font-weight="800" letter-spacing="4">GOOGLE HEALTH MCP · UNOFFICIAL</text>
+  <text x="92" y="242" fill="#effff7" font-family="Georgia, serif" font-size="76" font-weight="700">Your health signal,</text>
+  <text x="92" y="328" fill="#effff7" font-family="Georgia, serif" font-size="76" font-weight="700">agent-ready.</text>
+  <text x="96" y="458" fill="#9ccbb8" font-family="Avenir, Helvetica, sans-serif" font-size="29">Local-first OAuth · 25 tools · sleep · HRV · heart rate · activity</text>
+  <g transform="translate(780 194)">
+    <rect width="160" height="122" rx="24" fill="#020605" fill-opacity="0.72" stroke="#caffdf" stroke-opacity="0.16"/>
+    <text x="22" y="42" fill="#9ccbb8" font-family="Menlo, monospace" font-size="16">SLEEP</text>
+    <text x="22" y="82" fill="#effff7" font-family="Avenir, Helvetica, sans-serif" font-size="34" font-weight="800">7h 10m</text>
+  </g>
+  <g transform="translate(960 240)">
+    <rect width="150" height="112" rx="24" fill="#020605" fill-opacity="0.72" stroke="#caffdf" stroke-opacity="0.16"/>
+    <text x="22" y="40" fill="#9ccbb8" font-family="Menlo, monospace" font-size="16">HRV</text>
+    <text x="22" y="78" fill="#effff7" font-family="Avenir, Helvetica, sans-serif" font-size="34" font-weight="800">48 ms</text>
+  </g>
+</svg>

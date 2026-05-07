@@ -1,0 +1,6 @@
+Google Health MCP Unofficial
+
+Unofficial local-first MCP server for Google Health API v4.
+Important tools: google_health_connection_status, google_health_data_inventory, google_health_get_identity, google_health_list_data_points, google_health_reconcile_data_points, google_health_daily_rollup, google_health_rollup, google_health_daily_summary, google_health_weekly_summary.
+Privacy: tokens stay local under ~/.google-health-mcp. summary and structured modes minimize sensitive output. raw mode is explicit.
+Boundary: beta Google Health API v4 connector. Not affiliated with Google or Fitbit. Not medical advice.

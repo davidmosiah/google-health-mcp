@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Google Health MCP mark">
+  <rect width="64" height="64" rx="18" fill="#10100d"/>
+  <path d="M32 9 52 54H39l-7-16-7 16H12L32 9Z" fill="#fc4c02"/>
+  <path d="M32 24 42 54H34l-2-8-2 8h-8l10-30Z" fill="#ffb000" opacity=".9"/>
+</svg>

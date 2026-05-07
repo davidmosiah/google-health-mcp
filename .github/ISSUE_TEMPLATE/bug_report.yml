@@ -1,0 +1,24 @@
+name: Bug report
+description: Report a bug in google-health-mcp-server
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not paste Google Health tokens, client secrets, or raw activity, GPS or health exports."
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: How can we reproduce it without your secrets?
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: 0.1.0

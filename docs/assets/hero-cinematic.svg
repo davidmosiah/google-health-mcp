@@ -1,0 +1,39 @@
+<svg width="980" height="880" viewBox="0 0 980 880" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Google Health MCP cinematic training interface</title>
+  <desc id="desc">A cinematic health and activity dashboard showing Google Health activity signals flowing into an AI agent.</desc>
+  <defs>
+    <radialGradient id="glow" cx="46%" cy="42%" r="60%"><stop stop-color="#FC4C02" stop-opacity=".75"/><stop offset=".45" stop-color="#FFB000" stop-opacity=".25"/><stop offset="1" stop-color="#080806" stop-opacity="0"/></radialGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff2d2" stop-opacity=".16"/><stop offset="1" stop-color="#fff2d2" stop-opacity=".04"/></linearGradient>
+    <linearGradient id="signal" x1="120" x2="850"><stop stop-color="#ffb000"/><stop offset=".5" stop-color="#fc4c02"/><stop offset="1" stop-color="#6ee7ff"/></linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect x="28" y="28" width="924" height="824" rx="64" fill="#080806" stroke="#fff2d2" stroke-opacity=".14"/>
+  <rect x="58" y="58" width="864" height="764" rx="42" fill="url(#panel)"/>
+  <g opacity=".16" stroke="#fff2d2">
+    <path d="M82 188c130-72 232-72 362 0s246 72 454 0"/>
+    <path d="M82 270c130-72 232-72 362 0s246 72 454 0"/>
+    <path d="M82 352c130-72 232-72 362 0s246 72 454 0"/>
+    <path d="M82 434c130-72 232-72 362 0s246 72 454 0"/>
+    <path d="M82 516c130-72 232-72 362 0s246 72 454 0"/>
+    <path d="M82 598c130-72 232-72 362 0s246 72 454 0"/>
+  </g>
+  <circle cx="492" cy="414" r="310" fill="url(#glow)" filter="url(#soft)"/>
+  <path d="M156 602 C214 500 282 530 334 430 C392 318 474 486 538 364 C600 246 668 304 712 414 C764 544 834 438 878 310" stroke="url(#signal)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#080806" stroke="#fff2d2" stroke-opacity=".16">
+    <rect x="112" y="108" width="240" height="124" rx="26"/>
+    <rect x="628" y="126" width="220" height="118" rx="26"/>
+    <rect x="116" y="662" width="250" height="112" rx="26"/>
+    <rect x="548" y="636" width="318" height="132" rx="30" fill="#fc4c02" stroke="none"/>
+  </g>
+  <g font-family="Avenir, Avenir Next, Helvetica, sans-serif" font-weight="900">
+    <text x="142" y="150" fill="#a59c88" font-size="17" letter-spacing="2">DISTANCE</text>
+    <text x="142" y="205" fill="#ffb000" font-size="54">42.1 km</text>
+    <text x="660" y="168" fill="#a59c88" font-size="17" letter-spacing="2">AVG HR</text>
+    <text x="660" y="220" fill="#6ee7ff" font-size="52">152</text>
+    <text x="146" y="704" fill="#a59c88" font-size="17" letter-spacing="2">ELEVATION</text>
+    <text x="146" y="752" fill="#fff2d2" font-size="44">1,280 m</text>
+    <text x="586" y="684" fill="#240c03" font-size="17" letter-spacing="2">AI TRAINING LAYER</text>
+    <text x="586" y="724" fill="#120702" font-size="35">Consolidate load.</text>
+    <text x="586" y="752" fill="#421a09" font-size="19">Protect tomorrow's quality session.</text>
+  </g>
+</svg>

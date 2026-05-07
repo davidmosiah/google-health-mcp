@@ -1,0 +1,10 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Google Health MCP local-first architecture</title>
+  <desc id="desc">Architecture diagram showing Google OAuth through a local MCP server into AI agents.</desc>
+  <defs><linearGradient id="wire" x1="0" x2="1"><stop stop-color="#ffb000"/><stop offset=".5" stop-color="#fc4c02"/><stop offset="1" stop-color="#6ee7ff"/></linearGradient><radialGradient id="bg" cx="50%" cy="50%" r="70%"><stop stop-color="#fc4c02" stop-opacity=".18"/><stop offset="1" stop-color="#080806"/></radialGradient></defs>
+  <rect width="1280" height="720" rx="44" fill="#080806"/><rect width="1280" height="720" rx="44" fill="url(#bg)"/>
+  <g opacity=".18" stroke="#fff2d2"><path d="M70 150h1140M70 270h1140M70 390h1140M70 510h1140"/><path d="M160 90v540M360 90v540M560 90v540M760 90v540M960 90v540M1160 90v540"/></g>
+  <g fill="#10100d" stroke="#fff2d2" stroke-opacity=".16"><rect x="90" y="230" width="260" height="190" rx="34"/><rect x="510" y="206" width="260" height="238" rx="38"/><rect x="930" y="230" width="260" height="190" rx="34"/></g>
+  <path d="M350 324h160M770 324h160" stroke="url(#wire)" stroke-width="8" stroke-linecap="round"/>
+  <g font-family="Avenir, Avenir Next, Helvetica, sans-serif" font-weight="900"><text x="128" y="298" fill="#fc4c02" font-size="24" letter-spacing="2">GOOGLE HEALTH API</text><text x="128" y="344" fill="#fff2d2" font-size="21">OAuth · activities · streams</text><text x="548" y="286" fill="#ffb000" font-size="24" letter-spacing="2">LOCAL MCP</text><text x="548" y="332" fill="#fff2d2" font-size="21">tokens local · health privacy</text><text x="548" y="368" fill="#a59c88" font-size="18">summary · structured · raw</text><text x="968" y="298" fill="#6ee7ff" font-size="24" letter-spacing="2">AI AGENTS</text><text x="968" y="344" fill="#fff2d2" font-size="21">training decisions</text></g>
+</svg>

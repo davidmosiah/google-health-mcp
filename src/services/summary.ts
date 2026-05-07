@@ -1,0 +1,299 @@
+import type { GoogleHealthClient } from "./google-health-client.js";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+type UnknownRecord = Record<string, unknown>;
+
+export interface DailySummaryOptions {
+  date?: string;
+  timezone?: string;
+}
+
+export interface WeeklySummaryOptions {
+  days: number;
+  compare_days?: number;
+  timezone?: string;
+}
+
+function isObject(value: unknown): value is UnknownRecord {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function dateString(daysAgo = 0): string {
+  return new Date(Date.now() - daysAgo * DAY_MS).toISOString().slice(0, 10);
+}
+
+function normalizeDate(value?: string): string {
+  return !value || value === "today" ? dateString(0) : value;
+}
+
+function addDays(date: string, days: number): string {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+async function safe<T>(fn: () => Promise<T>, endpoint: string): Promise<T | { error: string; endpoint: string }> {
+  try {
+    return await fn();
+  } catch (error) {
+    return { error: (error as Error).message, endpoint };
+  }
+}
+
+async function dailyBundle(client: Pick<GoogleHealthClient, "dailyRollup" | "reconcileDataPoints">, date: string) {
+  const endDate = addDays(date, 1);
+  const [steps, distance, calories, activeZoneMinutes, heartRate, sleep, hrv, weight] = await Promise.all([
+    safe(() => client.dailyRollup({ dataType: "steps", startDate: date, endDate }), "dailyRollUp:steps"),
+    safe(() => client.dailyRollup({ dataType: "distance", startDate: date, endDate }), "dailyRollUp:distance"),
+    safe(() => client.dailyRollup({ dataType: "total-calories", startDate: date, endDate }), "dailyRollUp:total-calories"),
+    safe(() => client.dailyRollup({ dataType: "active-zone-minutes", startDate: date, endDate }), "dailyRollUp:active-zone-minutes"),
+    safe(() => client.reconcileDataPoints({ dataType: "daily-resting-heart-rate", filter: `daily_resting_heart_rate.interval.civil_start_time >= "${date}" AND daily_resting_heart_rate.interval.civil_start_time < "${endDate}"`, pageSize: 25 }), "reconcile:daily-resting-heart-rate"),
+    safe(() => client.reconcileDataPoints({ dataType: "sleep", filter: `sleep.interval.civil_start_time >= "${date}" AND sleep.interval.civil_start_time < "${endDate}"`, pageSize: 25, dataSourceFamily: "users/me/dataSourceFamilies/google-wearables" }), "reconcile:sleep"),
+    safe(() => client.reconcileDataPoints({ dataType: "daily-heart-rate-variability", filter: `daily_heart_rate_variability.interval.civil_start_time >= "${date}" AND daily_heart_rate_variability.interval.civil_start_time < "${endDate}"`, pageSize: 25 }), "reconcile:daily-heart-rate-variability"),
+    safe(() => client.dailyRollup({ dataType: "weight", startDate: date, endDate }), "dailyRollUp:weight")
+  ]);
+  return { date, steps, distance, calories, activeZoneMinutes, heartRate, sleep, hrv, weight };
+}
+
+function firstRollup(payload: unknown, key: string): UnknownRecord {
+  if (!isObject(payload) || !Array.isArray(payload.rollupDataPoints)) return {};
+  const point = payload.rollupDataPoints.find((item) => isObject(item) && isObject(item[key])) as UnknownRecord | undefined;
+  return isObject(point?.[key]) ? point[key] as UnknownRecord : {};
+}
+
+function reconciled(payload: unknown): UnknownRecord[] {
+  if (!isObject(payload) || !Array.isArray(payload.dataPoints)) return [];
+  return payload.dataPoints.filter(isObject);
+}
+
+function numberFrom(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function pickNumber(record: UnknownRecord, candidates: string[]): number | undefined {
+  for (const key of candidates) {
+    const value = numberFrom(record[key]);
+    if (value !== undefined) return value;
+  }
+  return undefined;
+}
+
+function findNestedNumber(value: unknown, candidates: string[]): number | undefined {
+  if (!isObject(value)) return undefined;
+  const direct = pickNumber(value, candidates);
+  if (direct !== undefined) return direct;
+  for (const nested of Object.values(value)) {
+    const found = findNestedNumber(nested, candidates);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+function sleepMinutes(points: UnknownRecord[]): number | undefined {
+  const minutes = points
+    .map((point) => isObject(point.sleep) ? point.sleep as UnknownRecord : {})
+    .map((sleep) => findNestedNumber(sleep.summary, ["minutesAsleep", "minutesInSleepPeriod"]))
+    .filter((value): value is number => value !== undefined);
+  if (minutes.length === 0) return undefined;
+  return Math.max(...minutes);
+}
+
+function dailyStats(bundle: Awaited<ReturnType<typeof dailyBundle>>) {
+  const steps = firstRollup(bundle.steps, "steps");
+  const distance = firstRollup(bundle.distance, "distance");
+  const calories = firstRollup(bundle.calories, "totalCalories");
+  const activeZoneMinutes = firstRollup(bundle.activeZoneMinutes, "activeZoneMinutes");
+  const weight = firstRollup(bundle.weight, "weight");
+  const heartPoint = reconciled(bundle.heartRate)[0];
+  const hrvPoint = reconciled(bundle.hrv)[0];
+
+  return {
+    date: bundle.date,
+    steps: findNestedNumber(steps, ["countSum", "count"]),
+    distance_meters: findNestedNumber(distance, ["metersSum", "distanceMetersSum", "millimetersSum"]),
+    calories_out: findNestedNumber(calories, ["kilocaloriesSum", "caloriesSum", "valueSum"]),
+    active_zone_minutes: findNestedNumber(activeZoneMinutes, ["minutesSum", "totalMinutesSum", "valueSum"]),
+    sleep_minutes: sleepMinutes(reconciled(bundle.sleep)),
+    resting_heart_rate: findNestedNumber(heartPoint, ["beatsPerMinute", "bpm", "value", "restingHeartRate"]),
+    hrv_rmssd: findNestedNumber(hrvPoint, ["rmssd", "rmssdMillis", "value"]),
+    weight_kg: findNestedNumber(weight, ["kilogramsAvg", "kilograms", "valueAvg"]),
+    missing_or_failed: {
+      steps: isError(bundle.steps),
+      distance: isError(bundle.distance),
+      calories: isError(bundle.calories),
+      active_zone_minutes: isError(bundle.activeZoneMinutes),
+      sleep: isError(bundle.sleep),
+      heart: isError(bundle.heartRate),
+      hrv: isError(bundle.hrv),
+      weight: isError(bundle.weight)
+    }
+  };
+}
+
+function isError(value: unknown): boolean {
+  return isObject(value) && typeof value.error === "string";
+}
+
+function avg(values: Array<number | undefined>): number | undefined {
+  const nums = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  if (!nums.length) return undefined;
+  return nums.reduce((sum, value) => sum + value, 0) / nums.length;
+}
+
+function round(value?: number, digits = 1): number | undefined {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+function aggregateStats(days: ReturnType<typeof dailyStats>[]) {
+  return {
+    days: days.length,
+    avg_steps: round(avg(days.map((day) => day.steps)), 0),
+    avg_sleep_hours: round(avg(days.map((day) => day.sleep_minutes === undefined ? undefined : day.sleep_minutes / 60)), 2),
+    avg_active_zone_minutes: round(avg(days.map((day) => day.active_zone_minutes)), 0),
+    avg_resting_heart_rate: round(avg(days.map((day) => day.resting_heart_rate)), 0),
+    avg_hrv_rmssd: round(avg(days.map((day) => day.hrv_rmssd)), 1),
+    days_with_steps: days.filter((day) => day.steps !== undefined).length,
+    days_with_sleep: days.filter((day) => day.sleep_minutes !== undefined).length,
+    days_with_heart: days.filter((day) => day.resting_heart_rate !== undefined).length
+  };
+}
+
+function classifyReadiness(stats: ReturnType<typeof dailyStats>): string {
+  const sleepHours = (stats.sleep_minutes ?? 0) / 60;
+  const active = stats.active_zone_minutes ?? 0;
+  if (sleepHours >= 7 && active <= 90) return "good_base";
+  if (sleepHours < 6 && active >= 45) return "recovery_risk";
+  if (sleepHours < 6) return "sleep_limited";
+  if (active >= 120) return "high_load";
+  return "neutral";
+}
+
+function actions(stats: ReturnType<typeof dailyStats>, weekly?: ReturnType<typeof aggregateStats>): string[] {
+  const out: string[] = [];
+  const state = classifyReadiness(stats);
+  if (state === "recovery_risk") out.push("Keep intensity conservative: sleep was short relative to activity load.");
+  if (state === "sleep_limited") out.push("Protect sleep timing before adding more training complexity.");
+  if (state === "high_load") out.push("Consider low-intensity recovery before another hard session.");
+  if (state === "good_base") out.push("If subjective energy agrees, this is a reasonable base for normal training or focused work.");
+  if (weekly?.avg_sleep_hours !== undefined && weekly.avg_sleep_hours < 6.5) out.push("Weekly sleep average is below 6.5h; sleep regularity may have higher leverage than extra optimization.");
+  out.push("This is not medical advice; use Google Health as trend context and escalate symptoms to a clinician.");
+  return [...new Set(out)];
+}
+
+export async function buildDailySummary(client: Pick<GoogleHealthClient, "dailyRollup" | "reconcileDataPoints">, options: DailySummaryOptions) {
+  const date = normalizeDate(options.date);
+  const bundle = await dailyBundle(client, date);
+  const stats = dailyStats(bundle);
+  return {
+    kind: "daily_summary" as const,
+    generated_at: new Date().toISOString(),
+    source: "google_health",
+    window: { date, timezone: options.timezone ?? "UTC" },
+    beta: true,
+    data_quality: {
+      confidence: Object.values(stats.missing_or_failed).filter(Boolean).length <= 2 ? "partial" : "low",
+      missing_or_failed: stats.missing_or_failed
+    },
+    scorecard: stats,
+    diagnostic: {
+      readiness_context: classifyReadiness(stats),
+      primary_signal: "Google Health v4 data is useful trend context; avoid over-interpreting any single day or single sensor.",
+      action_candidates: actions(stats)
+    },
+    safety: {
+      medical_advice: false,
+      api_boundary: "Google Health API v4 returns user-authorized health and fitness metrics from Fitbit, Pixel Watch and supported third-party sources; this MCP does not expose raw sensor telemetry."
+    }
+  };
+}
+
+export async function buildWeeklySummary(client: Pick<GoogleHealthClient, "dailyRollup" | "reconcileDataPoints">, options: WeeklySummaryOptions) {
+  const days = Math.max(options.days, 7);
+  const current = (await Promise.all(Array.from({ length: days }, (_, index) => dailyBundle(client, dateString(index)))))
+    .map(dailyStats)
+    .reverse();
+  const previous = options.compare_days && options.compare_days > 0
+    ? (await Promise.all(Array.from({ length: options.compare_days }, (_, index) => dailyBundle(client, dateString(days + index)))))
+      .map(dailyStats)
+      .reverse()
+    : [];
+  const currentStats = aggregateStats(current);
+  const previousStats = previous.length ? aggregateStats(previous) : undefined;
+  return {
+    kind: "weekly_summary" as const,
+    generated_at: new Date().toISOString(),
+    source: "google_health",
+    window: { days, compare_days: options.compare_days ?? 0, timezone: options.timezone ?? "UTC" },
+    beta: true,
+    data_quality: {
+      days_with_steps: currentStats.days_with_steps,
+      days_with_sleep: currentStats.days_with_sleep,
+      days_with_heart: currentStats.days_with_heart,
+      confidence: currentStats.days_with_steps >= 5 || currentStats.days_with_sleep >= 5 ? "medium" : "low"
+    },
+    scorecard: {
+      current: currentStats,
+      previous: previousStats
+    },
+    diagnostic: {
+      load_classification: classifyWeeklyLoad(currentStats),
+      bottlenecks: inferBottlenecks(currentStats),
+      action_candidates: actions(current[current.length - 1] ?? current[0], currentStats),
+      next_week_success_metrics: [
+        "Keep enough valid days to trust trends before optimizing conclusions.",
+        "Compare sleep, active minutes and resting heart rate together.",
+        "Use reconciled streams for source-specific questions such as watch-only sleep."
+      ]
+    },
+    safety: {
+      medical_advice: false,
+      beta_notice: "Google Health API v4 may change before the end-of-May 2026 stabilization window."
+    }
+  };
+}
+
+function classifyWeeklyLoad(stats: ReturnType<typeof aggregateStats>): string {
+  if ((stats.avg_active_zone_minutes ?? 0) >= 90) return "high";
+  if ((stats.avg_steps ?? 0) < 4000 && (stats.avg_active_zone_minutes ?? 0) < 20) return "low";
+  return "normal";
+}
+
+function inferBottlenecks(stats: ReturnType<typeof aggregateStats>): string[] {
+  const out: string[] = [];
+  if (stats.days_with_sleep < 4) out.push("sleep_data_sparse");
+  if (stats.avg_sleep_hours !== undefined && stats.avg_sleep_hours < 6.5) out.push("sleep_duration");
+  if (stats.days_with_steps < 4) out.push("activity_data_sparse");
+  if (stats.days_with_heart < 3) out.push("heart_context_sparse");
+  return out.length ? out : ["none_obvious_from_available_data"];
+}
+
+export function formatSummaryMarkdown(summary: Awaited<ReturnType<typeof buildDailySummary>> | Awaited<ReturnType<typeof buildWeeklySummary>>): string {
+  const lines = [
+    `# Google Health ${summary.kind === "daily_summary" ? "Daily Summary" : "Weekly Summary"}`,
+    "",
+    `Generated: ${summary.generated_at}`,
+    `Source: ${summary.source}`,
+    `Beta: ${summary.beta ? "yes" : "no"}`,
+    "",
+    "## Scorecard",
+    "```json",
+    JSON.stringify(summary.scorecard, null, 2),
+    "```",
+    "",
+    "## Diagnostic",
+    "```json",
+    JSON.stringify(summary.diagnostic, null, 2),
+    "```",
+    "",
+    "> Not medical advice."
+  ];
+  return lines.join("\n");
+}

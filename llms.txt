@@ -1,0 +1,15 @@
+# Google Health MCP
+Unofficial local-first Google Health API v4 MCP server for AI health, sleep and activity agents.
+Repository: https://github.com/davidmosiah/google-health-mcp
+Homepage: https://wellness.delx.ai/connectors/google-health
+NPM: https://www.npmjs.com/package/google-health-mcp-unofficial
+Primary command: npm exec --yes --package=google-health-mcp-unofficial -- google-health-mcp-server doctor
+MCP command: google-health-mcp-server
+
+- MCP registry name: io.github.davidmosiah/google-health-mcp
+- Status: beta while Google Health API v4 stabilizes before end of May 2026.
+- Start agents with google_health_connection_status and google_health_data_inventory.
+- Read-only default tools: identity, profile, settings, list data points, reconcile, dailyRollUp, rollUp, daily summary, weekly summary.
+- OAuth env: GOOGLE_HEALTH_CLIENT_ID, GOOGLE_HEALTH_CLIENT_SECRET, GOOGLE_HEALTH_REDIRECT_URI.
+- Tokens stay local under ~/.google-health-mcp/tokens.json and should never be printed.
+- Not medical advice. Use as trend context only.

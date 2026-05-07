@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://wellness.delx.ai/connectors/google-health/sitemap.xml
