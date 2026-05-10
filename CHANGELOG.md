@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Closed the SQLite cache handle in tests so the expanded Windows CI matrix can remove temporary cache files cleanly.
+
 ## 0.2.0
 
 - Added scope presets for easier first-time setup: `basic`, `activity`, `sleep` and `full`.

@@ -35,13 +35,15 @@ assert.equal(buildPrivacyAudit().unofficial, true);
 assert.equal(buildPrivacyAudit().gps_redaction_default, true);
 
 const dir = mkdtempSync(join(tmpdir(), 'google-health-mcp-cache-'));
+let cache;
 try {
   const path = join(dir, 'cache.sqlite');
-  const cache = new GoogleHealthCache(path);
+  cache = new GoogleHealthCache(path);
   cache.set('GET', 'https://example.com/a', { ok: true });
   assert.deepEqual(cache.get('GET', 'https://example.com/a'), { ok: true });
   assert.equal(cache.status().entries, 1);
 } finally {
+  cache?.close();
   rmSync(dir, { recursive: true, force: true });
 }
 

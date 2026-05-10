@@ -59,6 +59,10 @@ export class GoogleHealthCache {
     const row = this.db.prepare("SELECT COUNT(*) AS entries, MAX(cached_at) AS newest_cached_at FROM api_cache").get() as { entries: number; newest_cached_at?: string };
     return { enabled: true, path: this.path, entries: row.entries, newest_cached_at: row.newest_cached_at };
   }
+
+  close(): void {
+    this.db.close();
+  }
 }
 
 export function disabledCacheStatus(path: string): CacheStatus {
