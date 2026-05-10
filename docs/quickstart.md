@@ -8,9 +8,26 @@ Google Health MCP is a beta connector for builders testing Google Health API v4 
 4. Run:
 
 ```bash
-npx -y google-health-mcp-unofficial setup
+npx -y google-health-mcp-unofficial setup --scope-preset full
 npx -y google-health-mcp-unofficial auth
 npx -y google-health-mcp-unofficial doctor
+```
+
+Choose a smaller OAuth consent surface when you only need one domain:
+
+```bash
+npx -y google-health-mcp-unofficial setup --scope-preset basic
+npx -y google-health-mcp-unofficial setup --scope-preset activity
+npx -y google-health-mcp-unofficial setup --scope-preset sleep
+npx -y google-health-mcp-unofficial setup --scope-preset full
+```
+
+After auth, validate and debug with:
+
+```bash
+npx -y google-health-mcp-unofficial doctor --fix
+npx -y google-health-mcp-unofficial doctor --live
+npx -y google-health-mcp-unofficial support --redacted
 ```
 
 MCP config:
@@ -44,4 +61,4 @@ Open an issue if any of these happen:
 - A tool returns too much personal context for the default structured privacy mode.
 - A filter expression from the Google Health docs does not work as expected.
 
-Do not paste OAuth tokens, client secrets or personal health measurements into public issues.
+Run `google-health-mcp-server support --redacted` and paste that bundle when possible. Do not paste OAuth tokens, client secrets or personal health measurements into public issues.

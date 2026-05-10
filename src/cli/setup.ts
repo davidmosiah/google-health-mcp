@@ -4,9 +4,10 @@ import { dirname, join } from "node:path";
 import { createInterface as createCallbackInterface } from "node:readline";
 import { createInterface as createPromptInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { DEFAULT_SCOPES, NPM_PACKAGE_NAME, PINNED_NPM_PACKAGE } from "../constants.js";
+import { NPM_PACKAGE_NAME, PINNED_NPM_PACKAGE } from "../constants.js";
 import { hermesConfigSnippet, hermesSkillMarkdown, parseAgentClientName, type AgentClientName } from "../services/agent-manifest.js";
 import { writeLocalConfig, type LocalGoogleHealthConfig } from "../services/local-config.js";
+import { resolveScopes } from "../services/scope-presets.js";
 import { runAuthCommand } from "./auth.js";
 
 interface SetupOptions {
@@ -15,6 +16,7 @@ interface SetupOptions {
   clientSecret: string;
   redirectUri: string;
   privacyMode: "summary" | "structured" | "raw";
+  scopes: string[];
   cache?: string;
   tokenPath?: string;
   cachePath?: string;
@@ -36,7 +38,7 @@ export async function runSetupCommand(args: string[]): Promise<number> {
     GOOGLE_HEALTH_CLIENT_ID: options.clientId,
     GOOGLE_HEALTH_CLIENT_SECRET: options.clientSecret,
     GOOGLE_HEALTH_REDIRECT_URI: options.redirectUri,
-    GOOGLE_HEALTH_SCOPES: DEFAULT_SCOPES.join(" "),
+    GOOGLE_HEALTH_SCOPES: options.scopes.join(" "),
     GOOGLE_HEALTH_PRIVACY_MODE: options.privacyMode
   };
   if (options.cache) config.GOOGLE_HEALTH_CACHE = options.cache;
@@ -87,6 +89,7 @@ async function parseSetupOptions(args: string[]): Promise<SetupOptions> {
   const clientSecret = required(answers, "client-secret", "Google Health Client Secret");
   const redirectUri = answers.get("redirect-uri") ?? "http://127.0.0.1:3000/callback";
   const privacyMode = parsePrivacyMode(answers.get("privacy-mode") ?? "structured");
+  const scopes = resolveScopes(answers.get("scope-preset"), answers.get("scopes"));
   const cache = answers.get("cache");
 
   return {
@@ -95,6 +98,7 @@ async function parseSetupOptions(args: string[]): Promise<SetupOptions> {
     clientSecret,
     redirectUri,
     privacyMode,
+    scopes,
     cache,
     tokenPath: answers.get("token-path"),
     cachePath: answers.get("cache-path"),
@@ -135,6 +139,7 @@ async function promptForMissing(flags: Map<string, string>): Promise<Map<string,
   const secondPrompt = createPromptInterface({ input, output });
   try {
     if (!merged.has("redirect-uri")) merged.set("redirect-uri", (await secondPrompt.question("Google Health Redirect URI [http://127.0.0.1:3000/callback]: ")).trim() || "http://127.0.0.1:3000/callback");
+    if (!merged.has("scope-preset") && !merged.has("scopes")) merged.set("scope-preset", (await secondPrompt.question("Scope preset (basic/activity/sleep/full) [full]: ")).trim() || "full");
     if (!merged.has("privacy-mode")) merged.set("privacy-mode", (await secondPrompt.question("Privacy mode (summary/structured/raw) [structured]: ")).trim() || "structured");
   } finally {
     secondPrompt.close();

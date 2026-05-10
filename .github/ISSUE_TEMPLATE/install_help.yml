@@ -22,7 +22,7 @@ body:
     id: doctor
     attributes:
       label: Safe doctor output
-      description: Paste `google-health-mcp-server doctor` output only after removing anything sensitive.
+      description: Prefer `google-health-mcp-server support --redacted`, or paste `google-health-mcp-server doctor` output only after removing anything sensitive.
       render: text
   - type: textarea
     id: problem

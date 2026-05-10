@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import * as authModule from '../dist/cli/auth.js';
 import { buildConnectionStatus } from '../dist/services/connection-status.js';
 import { DEFAULT_SCOPES } from '../dist/constants.js';
@@ -10,6 +11,18 @@ import { DEFAULT_SCOPES } from '../dist/constants.js';
 const { parseLocalRedirectUri } = authModule;
 
 const dir = mkdtempSync(join(tmpdir(), 'google-health-mcp-cli-'));
+const supportsChmodAssertions = process.platform !== 'win32';
+
+function spawnNode(args, options) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, args, options);
+    let stdout = '';
+    let stderr = '';
+    child.stdout?.on('data', (chunk) => { stdout += chunk; });
+    child.stderr?.on('data', (chunk) => { stderr += chunk; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+}
 
 try {
   const missing = await buildConnectionStatus({ env: {}, homeDir: dir, nowMs: 1_000_000 });
@@ -132,7 +145,7 @@ try {
 
   const configPath = join(dir, '.google-health-mcp', 'config.json');
   const configMode = (statSync(configPath).mode & 0o777).toString(8);
-  assert.equal(configMode, '600');
+  if (supportsChmodAssertions) assert.equal(configMode, '600');
   const savedConfig = JSON.parse(readFileSync(configPath, 'utf8'));
   assert.equal(savedConfig.GOOGLE_HEALTH_CLIENT_ID, 'client-id-from-setup');
   assert.equal(savedConfig.GOOGLE_HEALTH_CLIENT_SECRET, 'client-secret-from-setup');
@@ -153,6 +166,148 @@ try {
   assert.equal(doctorAfterSetupPayload.config.source, 'local_config');
   assert.equal(doctorAfterSetupPayload.automatic_auth_supported, true);
   assert.ok(doctorAfterSetupPayload.next_steps.some((step) => step.includes('auth')));
+
+  const sleepSetup = spawnSync(process.execPath, [
+    'dist/index.js',
+    'setup',
+    '--client',
+    'generic',
+    '--client-id',
+    'sleep-client-id',
+    '--client-secret',
+    'sleep-client-secret',
+    '--redirect-uri',
+    'http://127.0.0.1:4567/callback',
+    '--scope-preset',
+    'sleep',
+    '--token-path',
+    tokenPath,
+    '--no-auth',
+    '--json'
+  ], {
+    encoding: 'utf8',
+    env: {
+      PATH: process.env.PATH,
+      HOME: dir
+    }
+  });
+  assert.equal(sleepSetup.status, 0, sleepSetup.stderr);
+  const sleepConfig = JSON.parse(readFileSync(configPath, 'utf8'));
+  assert.equal(sleepConfig.GOOGLE_HEALTH_SCOPES, [
+    'https://www.googleapis.com/auth/googlehealth.profile.readonly',
+    'https://www.googleapis.com/auth/googlehealth.settings.readonly',
+    'https://www.googleapis.com/auth/googlehealth.sleep.readonly'
+  ].join(' '));
+  assert.doesNotMatch(sleepConfig.GOOGLE_HEALTH_SCOPES, /nutrition/);
+
+  if (supportsChmodAssertions) {
+    chmodSync(configPath, 0o644);
+    chmodSync(tokenPath, 0o644);
+  }
+  const fixedDoctor = spawnSync(process.execPath, [
+    'dist/index.js',
+    'doctor',
+    '--fix',
+    '--json',
+    '--home-dir',
+    dir
+  ], {
+    encoding: 'utf8',
+    env: {
+      PATH: process.env.PATH
+    }
+  });
+  assert.equal(fixedDoctor.status, 0, fixedDoctor.stderr);
+  const fixedDoctorPayload = JSON.parse(fixedDoctor.stdout);
+  assert.equal(fixedDoctorPayload.ok, true);
+  if (supportsChmodAssertions) {
+    assert.ok(fixedDoctorPayload.fixes_applied.includes(`chmod 600 ${configPath}`));
+    assert.ok(fixedDoctorPayload.fixes_applied.includes(`chmod 600 ${tokenPath}`));
+    assert.equal((statSync(configPath).mode & 0o777).toString(8), '600');
+    assert.equal((statSync(tokenPath).mode & 0o777).toString(8), '600');
+  } else {
+    assert.ok(fixedDoctorPayload.warnings.some((warning) => /Windows/.test(warning)));
+  }
+
+  const support = spawnSync(process.execPath, [
+    'dist/index.js',
+    'support',
+    '--redacted',
+    '--json',
+    '--home-dir',
+    dir
+  ], {
+    encoding: 'utf8',
+    env: {
+      PATH: process.env.PATH
+    }
+  });
+  assert.equal(support.status, 0, support.stderr);
+  const supportText = support.stdout;
+  const supportPayload = JSON.parse(supportText);
+  assert.equal(supportPayload.package.name, 'google-health-mcp-unofficial');
+  assert.equal(supportPayload.redacted, true);
+  assert.equal(supportPayload.config.required_env.GOOGLE_HEALTH_CLIENT_ID, true);
+  assert.equal(supportPayload.config.required_env.GOOGLE_HEALTH_CLIENT_SECRET, true);
+  assert.match(supportPayload.issue_body, /Google Health MCP support bundle/);
+  assert.doesNotMatch(supportText, /sleep-client-secret/);
+  assert.doesNotMatch(supportText, /"access"/);
+  assert.doesNotMatch(supportText, /"refresh"/);
+
+  writeFileSync(tokenPath, JSON.stringify({
+    access_token: 'live-access-token',
+    refresh_token: 'live-refresh-token',
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    scope: DEFAULT_SCOPES.join(' ')
+  }), { mode: 0o600 });
+  const liveServer = createServer((req, res) => {
+    assert.equal(req.headers.authorization, 'Bearer live-access-token');
+    if (req.url === '/v4/users/me/identity') {
+      res.writeHead(200, { 'Content-Type': 'application/json', Connection: 'close' }).end(JSON.stringify({ userId: 'redacted-user' }));
+      return;
+    }
+    if (req.url === '/v4/users/me/profile') {
+      res.writeHead(200, { 'Content-Type': 'application/json', Connection: 'close' }).end(JSON.stringify({ profile: 'ok' }));
+      return;
+    }
+    if (req.url === '/v4/users/me/settings') {
+      res.writeHead(200, { 'Content-Type': 'application/json', Connection: 'close' }).end(JSON.stringify({ units: 'metric' }));
+      return;
+    }
+    res.writeHead(404, { 'Content-Type': 'application/json', Connection: 'close' }).end(JSON.stringify({ error: 'not found' }));
+  });
+  await new Promise((resolve) => liveServer.listen(0, '127.0.0.1', resolve));
+  try {
+    const address = liveServer.address();
+    assert.ok(address && typeof address === 'object');
+    const liveDoctor = await spawnNode([
+      'dist/index.js',
+      'doctor',
+      '--live',
+      '--json',
+      '--home-dir',
+      dir
+    ], {
+      encoding: 'utf8',
+      env: {
+        PATH: process.env.PATH,
+        GOOGLE_HEALTH_API_BASE_URL: `http://127.0.0.1:${address.port}`
+      }
+    });
+    assert.equal(liveDoctor.status, 0, liveDoctor.stderr);
+    const liveDoctorText = liveDoctor.stdout;
+    const liveDoctorPayload = JSON.parse(liveDoctorText);
+    assert.equal(liveDoctorPayload.live_check.requested, true);
+    assert.equal(liveDoctorPayload.live_check.api_reachable, true);
+    assert.equal(liveDoctorPayload.live_check.checks.identity.ok, true);
+    assert.equal(liveDoctorPayload.live_check.checks.profile.ok, true);
+    assert.equal(liveDoctorPayload.live_check.checks.settings.ok, true);
+    assert.doesNotMatch(liveDoctorText, /live-access-token/);
+    assert.doesNotMatch(liveDoctorText, /live-refresh-token/);
+  } finally {
+    liveServer.closeAllConnections?.();
+    await new Promise((resolve) => liveServer.close(resolve));
+  }
 
   console.log(JSON.stringify({ ok: true, cli_ux: true, doctor: true, status: true, auth_plan: true, setup: true }, null, 2));
 } finally {

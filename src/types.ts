@@ -19,6 +19,7 @@ export interface GoogleHealthConfig {
   privacyMode: PrivacyMode;
   cacheEnabled: boolean;
   cachePath: string;
+  apiBaseUrl: string;
 }
 
 export interface GoogleHealthCollection<T = unknown> {

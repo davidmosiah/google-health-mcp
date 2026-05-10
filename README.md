@@ -73,7 +73,7 @@ This MCP gives agents a clean way to discover the API, check setup, authenticate
 </p>
 
 ```bash
-npx -y google-health-mcp-unofficial setup
+npx -y google-health-mcp-unofficial setup --scope-preset full
 npx -y google-health-mcp-unofficial auth
 npx -y google-health-mcp-unofficial doctor
 ```
@@ -96,10 +96,36 @@ http://127.0.0.1:3000/callback
 Then run:
 
 ```bash
-npx -y google-health-mcp-unofficial setup
+npx -y google-health-mcp-unofficial setup --scope-preset full
 npx -y google-health-mcp-unofficial auth
 npx -y google-health-mcp-unofficial doctor
 ```
+
+Scope presets keep OAuth consent easier to reason about:
+
+```bash
+npx -y google-health-mcp-unofficial setup --scope-preset basic
+npx -y google-health-mcp-unofficial setup --scope-preset activity
+npx -y google-health-mcp-unofficial setup --scope-preset sleep
+npx -y google-health-mcp-unofficial setup --scope-preset full
+```
+
+- `basic` - profile and settings only
+- `activity` - profile, settings, activity and health metrics
+- `sleep` - profile, settings and sleep
+- `full` - all recommended read-only scopes, including nutrition
+
+If setup gets stuck:
+
+```bash
+npx -y google-health-mcp-unofficial doctor --fix
+npx -y google-health-mcp-unofficial doctor --live
+npx -y google-health-mcp-unofficial support --redacted
+```
+
+- `doctor --fix` repairs local config/token permissions where the OS supports `chmod 600`.
+- `doctor --live` calls safe Google Health identity/profile/settings endpoints after auth to prove the API is reachable.
+- `support --redacted` prints a copy-paste support bundle for GitHub issues without tokens, secrets or health measurements.
 
 Recommended read-only scopes:
 
@@ -199,7 +225,8 @@ users/me/dataSourceFamilies/google-sources
 ```bash
 npx -y google-health-mcp-unofficial setup --client hermes --no-auth
 npx -y google-health-mcp-unofficial auth
-npx -y google-health-mcp-unofficial doctor --client hermes
+npx -y google-health-mcp-unofficial doctor --client hermes --fix
+npx -y google-health-mcp-unofficial doctor --client hermes --live
 hermes mcp test google_health
 ```
 

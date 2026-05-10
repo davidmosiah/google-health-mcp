@@ -1,7 +1,6 @@
 import { URL, URLSearchParams } from "node:url";
 import {
   DEFAULT_LIMIT,
-  GOOGLE_HEALTH_API_BASE_URL,
   GOOGLE_HEALTH_AUTH_URL,
   GOOGLE_HEALTH_REVOKE_URL,
   GOOGLE_HEALTH_TOKEN_URL,
@@ -198,7 +197,7 @@ export class GoogleHealthClient {
 
   private buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
     const cleanPath = path.startsWith("/") ? path : `/${path}`;
-    const url = new URL(`${GOOGLE_HEALTH_API_BASE_URL}${cleanPath}`);
+    const url = new URL(`${this.config.apiBaseUrl}${cleanPath}`);
     for (const [key, value] of Object.entries(params ?? {})) {
       if (value === undefined || value === null || value === "") continue;
       url.searchParams.set(key, String(value));

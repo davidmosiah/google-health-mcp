@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+- Added scope presets for easier first-time setup: `basic`, `activity`, `sleep` and `full`.
+- Added `doctor --fix` to repair local config/token permissions before rechecking setup.
+- Added `doctor --live` for opt-in Google Health API reachability checks after auth.
+- Added `support --redacted` to generate safe GitHub issue bundles without OAuth tokens, client secrets or health values.
+- Added `GOOGLE_HEALTH_API_BASE_URL` override for tested live-check diagnostics.
+- Expanded CI to cover Linux, Windows and macOS.
+
 ## 0.1.4
 
 - Fixed Windows OAuth browser launch by using PowerShell `Start-Process` instead of `cmd.exe`, preventing OAuth query parameters such as `response_type=code` from being stripped.
