@@ -8,15 +8,29 @@ import {
   buildProfileSummary,
   getOnboardingFlow,
   getProfile,
-  missingCriticalFields
+  missingCriticalFields,
 } from "../services/profile-store.js";
-import { buildSupportReport, formatSupportReport } from "../services/support-report.js";
+import {
+  buildSupportReport,
+  formatSupportReport,
+} from "../services/support-report.js";
 import { runAuthCommand } from "./auth.js";
 import { runSetupCommand } from "./setup.js";
 
-const COMMANDS = ["setup", "doctor", "status", "support", "auth", "onboarding", "version", "help"] as const;
+const COMMANDS = [
+  "setup",
+  "doctor",
+  "status",
+  "support",
+  "auth",
+  "onboarding",
+  "version",
+  "help",
+] as const;
 
-export async function runCliCommand(args: string[]): Promise<number | undefined> {
+export async function runCliCommand(
+  args: string[],
+): Promise<number | undefined> {
   const [command, ...rest] = args;
   if (!command || command === "--http") return undefined;
   if (command === "setup") return runSetupCommand(rest);
@@ -41,7 +55,8 @@ export async function runCliCommand(args: string[]): Promise<number | undefined>
 }
 
 async function runOnboarding(args: string[]): Promise<number> {
-  const locale = args.includes("--pt-BR") || args.includes("--pt-br") ? "pt-BR" : "en";
+  const locale =
+    args.includes("--pt-BR") || args.includes("--pt-br") ? "pt-BR" : "en";
   const flow = getOnboardingFlow(locale);
   const profile = await getProfile();
   const payload = {
@@ -51,17 +66,21 @@ async function runOnboarding(args: string[]): Promise<number> {
     missing_critical: missingCriticalFields(profile),
     summary: buildProfileSummary(profile),
     cross_connector_hint:
-      "This profile is shared across every Delx Wellness MCP connector (whoop, garmin, oura, fitbit, strava, polar, withings, apple-health, samsung-health, google-health, nourish, cycle-coach, cgm, air)."
+      "This profile is shared across every Delx Wellness MCP connector (whoop, garmin, oura, fitbit, strava, polar, withings, apple-health, samsung-health, google-health, nourish, cycle-coach, cgm, air).",
   };
   process.stdout.write(JSON.stringify(payload, null, 2) + "\n");
   if (process.stderr.isTTY) {
     process.stderr.write(`\n# Delx Wellness Onboarding (${flow.locale})\n`);
     process.stderr.write(`Storage: ${flow.storage_path}\n`);
     process.stderr.write(`Profile summary: ${payload.summary}\n`);
-    process.stderr.write(`Missing critical: ${payload.missing_critical.join(", ") || "none"}\n`);
+    process.stderr.write(
+      `Missing critical: ${payload.missing_critical.join(", ") || "none"}\n`,
+    );
     process.stderr.write(`\n${flow.privacy_note}\n\nQuestions:\n`);
     for (const q of flow.questions) {
-      process.stderr.write(`  - [${q.category}${q.required ? "*" : ""}] ${q.prompt}\n`);
+      process.stderr.write(
+        `  - [${q.category}${q.required ? "*" : ""}] ${q.prompt}\n`,
+      );
     }
     process.stderr.write(`\n${payload.cross_connector_hint}\n`);
   }
@@ -72,7 +91,10 @@ export { COMMANDS };
 
 async function runSupport(args: string[]): Promise<number> {
   const options = parseSupportOptions(args);
-  const report = await buildSupportReport({ homeDir: options.homeDir, client: options.client });
+  const report = await buildSupportReport({
+    homeDir: options.homeDir,
+    client: options.client,
+  });
   if (options.json) console.log(JSON.stringify(report, null, 2));
   else console.log(formatSupportReport(report));
   return 0;
@@ -81,9 +103,18 @@ async function runSupport(args: string[]): Promise<number> {
 async function runDoctor(args: string[]): Promise<number> {
   const options = parseDoctorOptions(args);
   const fixes = options.fix ? fixLocalSetup(options.homeDir) : undefined;
-  const status = await buildConnectionStatus({ client: options.client, homeDir: options.homeDir });
-  const liveCheck = options.live ? await runLiveCheck(status, options.homeDir) : undefined;
-  const output = { ...status, ...(fixes ?? {}), ...(liveCheck ? { live_check: liveCheck } : {}) };
+  const status = await buildConnectionStatus({
+    client: options.client,
+    homeDir: options.homeDir,
+  });
+  const liveCheck = options.live
+    ? await runLiveCheck(status, options.homeDir)
+    : undefined;
+  const output = {
+    ...status,
+    ...(fixes ?? {}),
+    ...(liveCheck ? { live_check: liveCheck } : {}),
+  };
   if (options.json) {
     console.log(JSON.stringify(output, null, 2));
   } else {
@@ -91,12 +122,16 @@ async function runDoctor(args: string[]): Promise<number> {
     if (fixes?.fixes_applied.length) {
       console.log("");
       console.log("Fixes applied");
-      fixes.fixes_applied.forEach((fix, index) => console.log(`  ${index + 1}. ${fix}`));
+      fixes.fixes_applied.forEach((fix, index) =>
+        console.log(`  ${index + 1}. ${fix}`),
+      );
     }
     if (fixes?.warnings.length) {
       console.log("");
       console.log("Fix warnings");
-      fixes.warnings.forEach((warning, index) => console.log(`  ${index + 1}. ${warning}`));
+      fixes.warnings.forEach((warning, index) =>
+        console.log(`  ${index + 1}. ${warning}`),
+      );
     }
     if (liveCheck) {
       printLiveCheck(liveCheck);
@@ -115,9 +150,21 @@ function printLiveCheck(liveCheck: LiveCheckResult): void {
   console.log("");
   console.log("Live Google Health API");
   line(liveCheck.api_reachable ? ok : fail, "API reachable", liveCheck.skipped);
-  line(liveCheck.checks.identity.ok ? ok : fail, "Identity endpoint", liveCheck.checks.identity.error);
-  line(liveCheck.checks.profile.ok ? ok : fail, "Profile endpoint", liveCheck.checks.profile.error);
-  line(liveCheck.checks.settings.ok ? ok : fail, "Settings endpoint", liveCheck.checks.settings.error);
+  line(
+    liveCheck.checks.identity.ok ? ok : fail,
+    "Identity endpoint",
+    liveCheck.checks.identity.error,
+  );
+  line(
+    liveCheck.checks.profile.ok ? ok : fail,
+    "Profile endpoint",
+    liveCheck.checks.profile.error,
+  );
+  line(
+    liveCheck.checks.settings.ok ? ok : fail,
+    "Settings endpoint",
+    liveCheck.checks.settings.error,
+  );
 }
 
 function parseDoctorOptions(args: string[]) {
@@ -126,12 +173,14 @@ function parseDoctorOptions(args: string[]) {
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === "--client") {
       const value = args[index + 1];
-      if (!value || value.startsWith("--")) throw new Error("Missing value for --client.");
+      if (!value || value.startsWith("--"))
+        throw new Error("Missing value for --client.");
       client = parseAgentClientName(value);
       index += 1;
     } else if (args[index] === "--home-dir") {
       const value = args[index + 1];
-      if (!value || value.startsWith("--")) throw new Error("Missing value for --home-dir.");
+      if (!value || value.startsWith("--"))
+        throw new Error("Missing value for --home-dir.");
       homeDir = value;
       index += 1;
     }
@@ -142,7 +191,7 @@ function parseDoctorOptions(args: string[]) {
     fix: args.includes("--fix"),
     live: args.includes("--live"),
     homeDir: homeDir ?? homedir(),
-    client
+    client,
   };
 }
 
@@ -152,12 +201,14 @@ function parseSupportOptions(args: string[]) {
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === "--client") {
       const value = args[index + 1];
-      if (!value || value.startsWith("--")) throw new Error("Missing value for --client.");
+      if (!value || value.startsWith("--"))
+        throw new Error("Missing value for --client.");
       client = parseAgentClientName(value);
       index += 1;
     } else if (args[index] === "--home-dir") {
       const value = args[index + 1];
-      if (!value || value.startsWith("--")) throw new Error("Missing value for --home-dir.");
+      if (!value || value.startsWith("--"))
+        throw new Error("Missing value for --home-dir.");
       homeDir = value;
       index += 1;
     }
@@ -166,11 +217,13 @@ function parseSupportOptions(args: string[]) {
     json: args.includes("--json"),
     redacted: true,
     homeDir: homeDir ?? homedir(),
-    client
+    client,
   };
 }
 
-function printDoctor(status: Awaited<ReturnType<typeof buildConnectionStatus>>): void {
+function printDoctor(
+  status: Awaited<ReturnType<typeof buildConnectionStatus>>,
+): void {
   const ok = "✓";
   const fail = "✗";
   const info = "·";
@@ -185,25 +238,69 @@ function printDoctor(status: Awaited<ReturnType<typeof buildConnectionStatus>>):
   if (status.client) console.log(`Client: ${status.client}`);
   console.log("");
   console.log("Checks");
-  line(check(status.node.supported), "Node.js >=20", status.node.supported ? undefined : `version ${status.node.version}`);
-  line(check(status.missing_env.length === 0), "Env vars", status.missing_env.length ? `missing: ${status.missing_env.join(", ")}` : undefined);
-  line(check(status.config.exists), "Local config", status.config.exists ? `${status.config.source} at ${status.config.path}` : "missing");
-  line(check(status.automatic_auth_supported), "Automatic auth redirect", status.automatic_auth_supported ? undefined : "not configured for local callback");
-  line(check(status.token.exists), "Token file", status.token.exists ? status.token.path : "missing");
+  line(
+    check(status.node.supported),
+    "Node.js >=20",
+    status.node.supported ? undefined : `version ${status.node.version}`,
+  );
+  line(
+    check(status.missing_env.length === 0),
+    "Env vars",
+    status.missing_env.length
+      ? `missing: ${status.missing_env.join(", ")}`
+      : undefined,
+  );
+  line(
+    check(status.config.exists),
+    "Local config",
+    status.config.exists
+      ? `${status.config.source} at ${status.config.path}`
+      : "missing",
+  );
+  line(
+    check(status.automatic_auth_supported),
+    "Automatic auth redirect",
+    status.automatic_auth_supported
+      ? undefined
+      : "not configured for local callback",
+  );
+  line(
+    check(status.token.exists),
+    "Token file",
+    status.token.exists ? status.token.path : "missing",
+  );
   if (status.token.exists) {
-    line(status.token.secure_permissions === false ? fail : ok, "Token permissions", status.token.secure_permissions === false ? "insecure (chmod 600)" : undefined);
-    line(check(Boolean(status.token.has_refresh_token)), "Refresh token", status.token.has_refresh_token ? undefined : "missing");
+    line(
+      status.token.secure_permissions === false ? fail : ok,
+      "Token permissions",
+      status.token.secure_permissions === false
+        ? "insecure (chmod 600)"
+        : undefined,
+    );
+    line(
+      check(Boolean(status.token.has_refresh_token)),
+      "Refresh token",
+      status.token.has_refresh_token ? undefined : "missing",
+    );
   }
-  const scopesOk = status.oauth.scope_status === "ok" || status.oauth.missing_recommended_scopes.length === 0;
+  const scopesOk =
+    status.oauth.scope_status === "ok" ||
+    status.oauth.missing_recommended_scopes.length === 0;
   line(scopesOk ? ok : fail, "OAuth scopes", status.oauth.scope_status);
   if (status.oauth.granted_scopes.length > 0) {
     console.log(`      granted:  ${status.oauth.granted_scopes.join(" ")}`);
   }
   if (status.oauth.missing_recommended_scopes.length > 0) {
-    console.log(`      missing:  ${status.oauth.missing_recommended_scopes.join(" ")}`);
+    console.log(
+      `      missing:  ${status.oauth.missing_recommended_scopes.join(" ")}`,
+    );
   }
   line(info, "Privacy mode", status.privacy_mode);
-  line(status.cache.enabled ? ok : info, "Cache", status.cache.enabled ? `enabled at ${status.cache.path}` : "disabled");
+  line(
+    status.cache.enabled ? ok : info,
+    "Cache",
+    status.cache.enabled ? `enabled at ${status.cache.path}` : "disabled",
+  );
   if (status.client_checks?.hermes) {
     const hermes = status.client_checks.hermes;
     console.log("");
@@ -211,16 +308,24 @@ function printDoctor(status: Awaited<ReturnType<typeof buildConnectionStatus>>):
     line(info, "config path", hermes.config_path);
     line(check(hermes.google_health_server_configured), "configured");
     line(check(hermes.package_pinned), "pinned package");
-    line(check(hermes.skill_installed), "skill", hermes.skill_installed ? hermes.skill_path : "missing");
+    line(
+      check(hermes.skill_installed),
+      "skill",
+      hermes.skill_installed ? hermes.skill_path : "missing",
+    );
     line(info, "direct tool prefix", hermes.direct_tool_prefix);
   }
   console.log("");
   console.log("Next steps");
-  status.next_steps.forEach((step, index) => console.log(`  ${index + 1}. ${step}`));
+  status.next_steps.forEach((step, index) =>
+    console.log(`  ${index + 1}. ${step}`),
+  );
   if (status.client_checks?.hermes?.recommendations.length) {
     console.log("");
     console.log("Hermes recommendations");
-    status.client_checks.hermes.recommendations.forEach((step, index) => console.log(`  ${index + 1}. ${step}`));
+    status.client_checks.hermes.recommendations.forEach((step, index) =>
+      console.log(`  ${index + 1}. ${step}`),
+    );
   }
 }
 
@@ -241,6 +346,7 @@ Usage:
   google-health-mcp-server support --json  Print redacted support bundle as JSON
   google-health-mcp-server auth            Authorize Google Health with local browser callback
   google-health-mcp-server auth --no-open  Print auth URL without opening browser
+  google-health-mcp-server auth --manual   Manually copy/paste auth URL and callback (for remote servers)
   google-health-mcp-server onboarding      Print the shared Delx Wellness onboarding flow as JSON (+ TTY summary on stderr)
   google-health-mcp-server onboarding --pt-BR  Onboarding flow in Brazilian Portuguese
 
