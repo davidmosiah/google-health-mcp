@@ -1,5 +1,5 @@
 export const SERVER_NAME = "google-health-mcp-server";
-export const SERVER_VERSION = "0.4.0";
+export const SERVER_VERSION = "0.4.1";
 export const NPM_PACKAGE_NAME = "google-health-mcp-unofficial";
 export const PINNED_NPM_PACKAGE = `${NPM_PACKAGE_NAME}@${SERVER_VERSION}`;
 

@@ -220,9 +220,28 @@ async function fileExists(path: string): Promise<boolean> {
 async function readProfileFile(path: string): Promise<WellnessProfileDocument | null> {
   try {
     const raw = await fs.readFile(path, "utf8");
-    const parsed = JSON.parse(raw) as WellnessProfileDocument;
-    if (parsed.schema !== "delx-wellness-profile/v1") return null;
-    return parsed;
+    const parsed = JSON.parse(raw) as Partial<WellnessProfileDocument>;
+    if (parsed?.schema !== "delx-wellness-profile/v1") return null;
+    // Structural defaults merge: legacy / partial files often lack one or more
+    // sub-objects, and downstream code (buildProfileSummary, missingCriticalFields,
+    // updateProfile) assumes every nested object is defined. Fill any missing
+    // sub-object from DEFAULT_PROFILE so consumers can never crash on
+    // `profile.goals.primary` etc.
+    return {
+      ...DEFAULT_PROFILE,
+      ...parsed,
+      schema: "delx-wellness-profile/v1",
+      version: 1,
+      generated_by: parsed.generated_by ?? DEFAULT_PROFILE.generated_by,
+      profile: { ...DEFAULT_PROFILE.profile, ...(parsed.profile ?? {}) },
+      goals: { ...DEFAULT_PROFILE.goals, ...(parsed.goals ?? {}) },
+      devices: { ...DEFAULT_PROFILE.devices, ...(parsed.devices ?? {}) },
+      training: { ...DEFAULT_PROFILE.training, ...(parsed.training ?? {}) },
+      nutrition: { ...DEFAULT_PROFILE.nutrition, ...(parsed.nutrition ?? {}) },
+      preferences: { ...DEFAULT_PROFILE.preferences, ...(parsed.preferences ?? {}) },
+      safety: { ...DEFAULT_PROFILE.safety, ...(parsed.safety ?? {}) },
+      notes: parsed.notes ?? DEFAULT_PROFILE.notes,
+    };
   } catch {
     return null;
   }
@@ -284,17 +303,35 @@ export async function updateProfile(
   return merged;
 }
 
-const SECRET_PATTERNS = /(oauth|token|secret|password|cookie|refresh|api[_-]?key|session)/i;
+// Pattern matched against FIELD NAMES (object keys). High signal — a wellness
+// profile has zero legitimate reason to contain a field literally named
+// "oauth_token" or "api_key". Broad pattern is safe here because keys are
+// schema-bound.
+const SECRET_KEY_PATTERNS = /(oauth|token|secret|password|cookie|refresh|api[_-]?key|bearer|credential|session[_-]?id)/i;
+
+// Pattern matched against FIELD VALUES (free text). Must be high-specificity
+// because users will legitimately write "I do 3 training sessions per week",
+// "limit cookies", "I need to refresh my routine", "secret sauce: more sleep",
+// etc. We only block actual credential shapes:
+//   - JWT-like (xxx.yyy.zzz with base64-ish chunks)
+//   - "Bearer <token>" with a real-looking token
+//   - Stripe sk_live_/sk_test_ keys
+//   - Slack xoxb-/xoxp- tokens
+//   - GitHub personal access tokens (github_pat_, ghp_, gho_, ghs_, ghr_)
+//   - OpenAI sk-...
+//   - "Authorization: ..."
+const SECRET_VALUE_PATTERNS =
+  /(eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|Bearer\s+[A-Za-z0-9._-]{20,}|sk_(live|test)_[A-Za-z0-9]{20,}|xox[bporas]-[A-Za-z0-9-]{20,}|github_pat_[A-Za-z0-9_]{20,}|gh[posru]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|Authorization:\s*[A-Za-z]+\s+[A-Za-z0-9._-]+)/;
 
 function rejectSecretsInPatch(patch: Partial<WellnessProfileDocument>): void {
   function scan(value: unknown, path: string[] = []): void {
     if (value === null || value === undefined) return;
     if (typeof value === "string") {
-      const flat = path.join(".");
-      if (SECRET_PATTERNS.test(flat) || SECRET_PATTERNS.test(value)) {
+      if (SECRET_VALUE_PATTERNS.test(value)) {
+        const flat = path.join(".") || "<root>";
         throw new Error(
-          `Refusing to store secret-like value at '${flat}'. ` +
-          `Profile is for non-secret wellness context only.`,
+          `Refusing to store credential-shaped value at '${flat}'. ` +
+          `Profile is for non-secret wellness context only; keep tokens in each connector's own local config (e.g. ~/.whoop-mcp/, ~/.oura-mcp/, etc.).`,
         );
       }
       return;
@@ -305,10 +342,10 @@ function rejectSecretsInPatch(patch: Partial<WellnessProfileDocument>): void {
     }
     if (typeof value === "object") {
       for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-        if (SECRET_PATTERNS.test(k)) {
+        if (SECRET_KEY_PATTERNS.test(k)) {
           throw new Error(
-            `Refusing to store secret-like field '${k}'. ` +
-            `Profile is for non-secret wellness context only.`,
+            `Refusing to store secret-like field name '${k}'. ` +
+            `Profile is for non-secret wellness context only; keep tokens in each connector's own local config.`,
           );
         }
         scan(v, [...path, k]);
@@ -376,7 +413,8 @@ export function getOnboardingFlow(locale: WellnessLanguage = "en"): OnboardingFl
     storage_path: PROFILE_PATH,
     privacy_note:
       "Profile NEVER stores OAuth tokens, API keys, refresh tokens, cookies, or raw provider secrets. " +
-      "Tokens stay in each connector's own local-config (e.g. ~/.whoop-mcp/tokens.json).",
+      "Tokens stay in each connector's own local config (e.g. ~/.whoop-mcp/, ~/.oura-mcp/, ~/.garmin-mcp/, etc.), " +
+      "separate from this shared profile.",
   };
 }
 
