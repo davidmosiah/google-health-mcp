@@ -1,6 +1,8 @@
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
+import { createInterface as createPromptInterface } from "node:readline/promises";
+import { stdin as input, stdout as stdout } from "node:process";
 import { getConfig } from "../services/config.js";
 import { GoogleHealthClient } from "../services/google-health-client.js";
 
@@ -20,45 +22,77 @@ export function parseLocalRedirectUri(value: string): LocalRedirectPlan {
   const url = new URL(value);
   const localHosts = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
   if (url.protocol !== "http:" || !localHosts.has(url.hostname) || !url.port) {
-    throw new Error("Automatic auth requires a local redirect URI such as http://127.0.0.1:3000/callback.");
+    throw new Error(
+      "Automatic auth requires a local redirect URI such as http://127.0.0.1:3000/callback.",
+    );
   }
   return {
-    host: url.hostname === "localhost" ? "127.0.0.1" : url.hostname.replace(/^\[(.*)\]$/, "$1"),
+    host:
+      url.hostname === "localhost"
+        ? "127.0.0.1"
+        : url.hostname.replace(/^\[(.*)\]$/, "$1"),
     port: Number(url.port),
-    path: url.pathname || "/callback"
+    path: url.pathname || "/callback",
   };
 }
 
 export async function runAuthCommand(args: string[]): Promise<number> {
   const noOpen = args.includes("--no-open");
   const json = args.includes("--json");
+  const manual = args.includes("--manual");
   const config = getConfig();
   const redirect = parseLocalRedirectUri(config.redirectUri);
   const state = randomBytes(4).toString("hex");
   const client = new GoogleHealthClient(config);
   const authUrl = client.authUrl(state);
-  const timeoutMs = Number(process.env.GOOGLE_HEALTH_AUTH_TIMEOUT_MS ?? 300_000);
+  const timeoutMs = Number(
+    process.env.GOOGLE_HEALTH_AUTH_TIMEOUT_MS ?? 300_000,
+  );
+  const callbackprompt = createPromptInterface({ input, output: stdout });
 
-  const result = await waitForOAuthCode(redirect, state, timeoutMs, async (url) => {
-    if (!json) {
-      console.log("Google Health MCP · Authorization");
-      console.log("");
-      if (noOpen) {
-        console.log("Open this URL manually:");
-        console.log(`  ${url}`);
-      } else {
-        console.log("Opening Google Health authorization in your browser...");
-      }
-      console.log("");
-      console.log("Steps");
-      console.log("  1. Approve access in the browser tab that opens.");
-      console.log("  2. Google Health will redirect to the local callback.");
-      console.log("  3. Tokens are saved locally; this command never prints them.");
-      console.log("");
-      console.log("Waiting for callback...");
-    }
-    if (!noOpen) openBrowser(url);
-  }, authUrl);
+  var result: { code: string };
+  if (manual) {
+    console.log("Manual authentication required.");
+    console.log("Please visit the following URL to authenticate:");
+    console.log(`  ${authUrl}`);
+    const callbackUrl = new URL(
+      (await callbackprompt.question("Callback URL: ")).trim(),
+    );
+    result = { code: callbackUrl.searchParams.get("code") ?? "" };
+  } else {
+    result = await waitForOAuthCode(
+      redirect,
+      state,
+      timeoutMs,
+      async (url) => {
+        if (!json) {
+          console.log("Google Health MCP · Authorization");
+          console.log("");
+          if (noOpen) {
+            console.log("Open this URL manually:");
+            console.log(`  ${url}`);
+          } else {
+            console.log(
+              "Opening Google Health authorization in your browser...",
+            );
+          }
+          console.log("");
+          console.log("Steps");
+          console.log("  1. Approve access in the browser tab that opens.");
+          console.log(
+            "  2. Google Health will redirect to the local callback.",
+          );
+          console.log(
+            "  3. Tokens are saved locally; this command never prints them.",
+          );
+          console.log("");
+          console.log("Waiting for callback...");
+        }
+        if (!noOpen) openBrowser(url);
+      },
+      authUrl,
+    );
+  }
 
   const exchange = await client.exchangeCode(result.code);
   const output = {
@@ -66,7 +100,8 @@ export async function runAuthCommand(args: string[]): Promise<number> {
     token_path: exchange.token_path,
     expires_at: exchange.expires_at,
     scope: exchange.scope,
-    next_step: "Run `google-health-mcp-server doctor`, then add the MCP server to your agent."
+    next_step:
+      "Run `google-health-mcp-server doctor`, then add the MCP server to your agent.",
   };
   if (json) console.log(JSON.stringify(output, null, 2));
   else {
@@ -87,7 +122,7 @@ function waitForOAuthCode(
   expectedState: string,
   timeoutMs: number,
   onReady: (authUrl: string) => Promise<void> | void,
-  authUrl: string
+  authUrl: string,
 ): Promise<{ code: string }> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -97,7 +132,10 @@ function waitForOAuthCode(
 
     const server = createServer((req, res) => {
       try {
-        const requestUrl = new URL(req.url ?? "/", `http://${redirect.host}:${redirect.port}`);
+        const requestUrl = new URL(
+          req.url ?? "/",
+          `http://${redirect.host}:${redirect.port}`,
+        );
         if (requestUrl.pathname !== redirect.path) {
           res.writeHead(404).end("Not found");
           return;
@@ -105,16 +143,23 @@ function waitForOAuthCode(
         const error = requestUrl.searchParams.get("error");
         const code = requestUrl.searchParams.get("code");
         const state = requestUrl.searchParams.get("state");
-        if (error) throw new Error(`Google Health authorization failed: ${error}`);
-        if (!code) throw new Error("GOOGLE_HEALTH callback did not include a code.");
-        if (state !== expectedState) throw new Error("GOOGLE_HEALTH callback state mismatch.");
-        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }).end(successHtml());
+        if (error)
+          throw new Error(`Google Health authorization failed: ${error}`);
+        if (!code)
+          throw new Error("GOOGLE_HEALTH callback did not include a code.");
+        if (state !== expectedState)
+          throw new Error("GOOGLE_HEALTH callback state mismatch.");
+        res
+          .writeHead(200, { "Content-Type": "text/html; charset=utf-8" })
+          .end(successHtml());
         clearTimeout(timeout);
         server.close();
         resolve({ code });
       } catch (error) {
         clearTimeout(timeout);
-        res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" }).end((error as Error).message);
+        res
+          .writeHead(400, { "Content-Type": "text/plain; charset=utf-8" })
+          .end((error as Error).message);
         server.close();
         reject(error);
       }
@@ -136,25 +181,28 @@ function waitForOAuthCode(
   });
 }
 
-export function buildBrowserOpenCommand(url: string, platform: NodeJS.Platform = process.platform): BrowserOpenCommand {
+export function buildBrowserOpenCommand(
+  url: string,
+  platform: NodeJS.Platform = process.platform,
+): BrowserOpenCommand {
   if (platform === "win32") {
     return {
       command: "powershell.exe",
       args: [
         "-NoProfile",
         "-Command",
-        "Start-Process -FilePath $env:GOOGLE_HEALTH_MCP_AUTH_URL"
+        "Start-Process -FilePath $env:GOOGLE_HEALTH_MCP_AUTH_URL",
       ],
       env: {
         ...process.env,
-        GOOGLE_HEALTH_MCP_AUTH_URL: url.replace(/\+/g, "%20")
-      }
+        GOOGLE_HEALTH_MCP_AUTH_URL: url.replace(/\+/g, "%20"),
+      },
     };
   }
 
   return {
     command: platform === "darwin" ? "open" : "xdg-open",
-    args: [url]
+    args: [url],
   };
 }
 
@@ -163,7 +211,7 @@ function openBrowser(url: string): void {
   const child = spawn(browserOpen.command, browserOpen.args, {
     detached: true,
     stdio: "ignore",
-    env: browserOpen.env
+    env: browserOpen.env,
   });
   child.unref();
 }
