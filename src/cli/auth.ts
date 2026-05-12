@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createInterface as createPromptInterface } from "node:readline/promises";
-import { stdin as input, stdout as stdout } from "node:process";
+import { stdin as input, stdout, stderr } from "node:process";
 import { getConfig } from "../services/config.js";
 import { GoogleHealthClient } from "../services/google-health-client.js";
 
@@ -48,13 +48,16 @@ export async function runAuthCommand(args: string[]): Promise<number> {
   const timeoutMs = Number(
     process.env.GOOGLE_HEALTH_AUTH_TIMEOUT_MS ?? 300_000,
   );
-  const callbackPrompt = createPromptInterface({ input, output: stdout });
-
-  var result: { code: string };
+  let result: { code: string };
   if (manual) {
-    console.log("Manual authentication required.");
-    console.log("Please visit the following URL to authenticate:");
-    console.log(`  ${authUrl}`);
+    const promptOutput = json ? stderr : stdout;
+    const callbackPrompt = createPromptInterface({
+      input,
+      output: promptOutput,
+    });
+    promptOutput.write("Manual authentication required.\n");
+    promptOutput.write("Please visit the following URL to authenticate:\n");
+    promptOutput.write(`  ${authUrl}\n`);
     try {
       const callbackUrlString = (
         await callbackPrompt.question("Callback URL: ")
