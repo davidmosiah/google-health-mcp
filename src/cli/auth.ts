@@ -48,17 +48,52 @@ export async function runAuthCommand(args: string[]): Promise<number> {
   const timeoutMs = Number(
     process.env.GOOGLE_HEALTH_AUTH_TIMEOUT_MS ?? 300_000,
   );
-  const callbackprompt = createPromptInterface({ input, output: stdout });
+  const callbackPrompt = createPromptInterface({ input, output: stdout });
 
   var result: { code: string };
   if (manual) {
     console.log("Manual authentication required.");
     console.log("Please visit the following URL to authenticate:");
     console.log(`  ${authUrl}`);
-    const callbackUrl = new URL(
-      (await callbackprompt.question("Callback URL: ")).trim(),
-    );
-    result = { code: callbackUrl.searchParams.get("code") ?? "" };
+    try {
+      const callbackUrlString = (
+        await callbackPrompt.question("Callback URL: ")
+      ).trim();
+      const callbackUrl = new URL(callbackUrlString);
+
+      // Validate origin matches expected redirect URI
+      const expectedUrl = new URL(config.redirectUri);
+      if (
+        callbackUrl.origin !== expectedUrl.origin ||
+        callbackUrl.pathname !== expectedUrl.pathname
+      ) {
+        throw new Error(
+          `Callback URL must match redirect URI: ${config.redirectUri}`,
+        );
+      }
+
+      // Check for authorization errors
+      const error = callbackUrl.searchParams.get("error");
+      if (error) {
+        throw new Error(`Google Health authorization failed: ${error}`);
+      }
+
+      // Validate state parameter (CSRF protection)
+      const receivedState = callbackUrl.searchParams.get("state");
+      if (receivedState !== state) {
+        throw new Error("Google Health callback state mismatch.");
+      }
+
+      // Extract and validate code
+      const code = callbackUrl.searchParams.get("code");
+      if (!code) {
+        throw new Error("Google Health callback did not include a code.");
+      }
+
+      result = { code };
+    } finally {
+      callbackPrompt.close();
+    }
   } else {
     result = await waitForOAuthCode(
       redirect,
