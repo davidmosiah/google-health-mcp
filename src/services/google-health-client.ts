@@ -9,6 +9,7 @@ import {
 } from "../constants.js";
 import type { GoogleHealthConfig, GoogleHealthTokenSet } from "../types.js";
 import { disabledCacheStatus, GoogleHealthCache, type CacheStatus } from "./cache.js";
+import { fetchWithRetry } from "./http-retry.js";
 import { redactErrorMessage } from "./redaction.js";
 import { TokenStore } from "./token-store.js";
 
@@ -304,15 +305,7 @@ export class GoogleHealthClient {
   }
 
   private async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const response = await fetch(url, init);
-      if (response.status !== 429 && response.status < 500) return response;
-      if (attempt === 2) return response;
-      const retryAfter = Number(response.headers.get("retry-after"));
-      const delaySeconds = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : response.status === 429 ? 60 : 2 ** attempt;
-      await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
-    }
-    throw new Error("Unreachable retry loop state");
+    return fetchWithRetry(url, init);
   }
 }
 

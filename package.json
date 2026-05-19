@@ -1,6 +1,6 @@
 {
   "name": "google-health-mcp-unofficial",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Unofficial local-first Google Health API v4 MCP server for AI health, sleep and activity agents.",
   "type": "module",
   "bin": {
@@ -32,11 +32,12 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "smoke": "node scripts/smoke-tools.mjs",
-    "test": "npm run typecheck && npm run build && npm run smoke && npm run smoke:http && npm run test:summary && npm run test:privacy-cache && npm run test:cli-ux && npm run test:agent-readiness && npm run test:hermes-agent && npm run test:metadata",
+    "test": "npm run typecheck && npm run build && npm run smoke && npm run smoke:http && npm run test:summary && npm run test:privacy-cache && npm run test:http-retry && npm run test:cli-ux && npm run test:agent-readiness && npm run test:hermes-agent && npm run test:metadata",
     "test:summary": "node scripts/summary-fixture-test.mjs",
     "prepublishOnly": "npm test",
     "smoke:http": "node scripts/smoke-http.mjs",
     "test:privacy-cache": "node scripts/privacy-cache-test.mjs",
+    "test:http-retry": "node scripts/http-retry-test.mjs",
     "test:cli-ux": "node scripts/cli-ux-test.mjs",
     "test:agent-readiness": "node scripts/agent-readiness-test.mjs",
     "test:hermes-agent": "node scripts/hermes-agent-manifest-test.mjs",
