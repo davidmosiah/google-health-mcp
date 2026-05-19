@@ -153,19 +153,22 @@ function promptHidden(question: string): Promise<string> {
       stdoutMuted?: boolean;
       _writeToOutput?: (text: string) => void;
     };
-    const originalWrite = rl._writeToOutput?.bind(rl);
-    rl._writeToOutput = (text: string) => {
-      if (rl.stdoutMuted && text !== "\n" && text !== "\r\n") output.write("*");
-      else if (originalWrite) originalWrite(text);
-      else output.write(text);
-    };
+
     rl.stdoutMuted = true;
+
     rl.question(question, (answer) => {
       rl.stdoutMuted = false;
       rl.close();
       output.write("\n");
       resolve(answer.trim());
     });
+
+    const originalWrite = rl._writeToOutput?.bind(rl);
+    rl._writeToOutput = (text: string) => {
+      if (rl.stdoutMuted && text !== "\n" && text !== "\r\n") output.write("*");
+      else if (originalWrite) originalWrite(text);
+      else output.write(text);
+    };
   });
 }
 
