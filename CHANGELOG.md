@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.2 - 2026-05-19
+
+### Fixed
+
+- **`distance_meters` no longer returns millimeters as if they were meters.** When `firstRollup(distance, "distance")` only surfaced `millimetersSum` (and not `metersSum` / `distanceMetersSum`), `dailyStats()` returned the raw mm value labelled as meters — so a real 12.345 km walk reported as 12,345,000 m. Fix: new `distanceMeters()` helper prefers meter-named fields, falls back to mm with `Math.round(mm / 1000)`. Thanks @Z0mbiel0ne for the precise repro (#9).
+
+### Changed
+
+- **`promptHidden` reorders setup so the password prompt itself prints cleanly.** Previously the `_writeToOutput` interceptor was installed before `rl.question()`, so the question string ("Enter Google Health client secret:") was processed by the mute branch and could echo as asterisks. Marcel reordered: set `stdoutMuted = true` → ask question (renders the prompt normally because no interceptor yet) → install interceptor → user keystrokes get masked. Merged via PR #8 by @Z0mbiel0ne.
+
 ## 0.4.1 - 2026-05-11
 
 ### Fixed

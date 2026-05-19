@@ -104,6 +104,17 @@ function sleepMinutes(points: UnknownRecord[]): number | undefined {
   return Math.max(...minutes);
 }
 
+function distanceMeters(distance: unknown): number | undefined {
+  // Prefer fields already in meters.
+  const meters = findNestedNumber(distance, ["metersSum", "distanceMetersSum"]);
+  if (meters !== undefined) return meters;
+  // Convert millimeters → meters when that is the only available unit
+  // (Google Health API surfaces millimetersSum on some distance streams).
+  const millimeters = findNestedNumber(distance, ["millimetersSum"]);
+  if (millimeters !== undefined) return Math.round(millimeters / 1000);
+  return undefined;
+}
+
 function dailyStats(bundle: Awaited<ReturnType<typeof dailyBundle>>) {
   const steps = firstRollup(bundle.steps, "steps");
   const distance = firstRollup(bundle.distance, "distance");
@@ -116,7 +127,7 @@ function dailyStats(bundle: Awaited<ReturnType<typeof dailyBundle>>) {
   return {
     date: bundle.date,
     steps: findNestedNumber(steps, ["countSum", "count"]),
-    distance_meters: findNestedNumber(distance, ["metersSum", "distanceMetersSum", "millimetersSum"]),
+    distance_meters: distanceMeters(distance),
     calories_out: findNestedNumber(calories, ["kilocaloriesSum", "caloriesSum", "valueSum"]),
     active_zone_minutes: findNestedNumber(activeZoneMinutes, ["minutesSum", "totalMinutesSum", "valueSum"]),
     sleep_minutes: sleepMinutes(reconciled(bundle.sleep)),
