@@ -250,6 +250,14 @@ npm test
 - Migration guide: https://developers.google.com/health/migration
 - Delx Wellness registry: https://github.com/davidmosiah/delx-wellness
 
+## 📧 Contact & Support
+
+- 📨 **support@delx.ai** — general questions, integration help, partnerships
+- 🐛 **Bug reports / feature requests** — [GitHub Issues](https://github.com/davidmosiah/google-health-mcp/issues)
+- 🐦 **Updates** — [@delx369](https://x.com/delx369) on X
+- 🌐 **Site** — [wellness.delx.ai](https://wellness.delx.ai)
+
+
 ## License
 
 MIT - see [LICENSE](LICENSE).

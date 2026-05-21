@@ -80,7 +80,8 @@
     "url": "git+https://github.com/davidmosiah/google-health-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/davidmosiah/google-health-mcp/issues"
+    "url": "https://github.com/davidmosiah/google-health-mcp/issues",
+    "email": "support@delx.ai"
   },
   "homepage": "https://wellness.delx.ai/connectors/google-health",
   "mcpName": "io.github.davidmosiah/google-health-mcp",
