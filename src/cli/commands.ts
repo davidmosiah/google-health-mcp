@@ -170,6 +170,30 @@ function parseSupportOptions(args: string[]) {
   };
 }
 
+
+function safeDoctorStatus(status: Awaited<ReturnType<typeof buildConnectionStatus>>): unknown {
+  const raw = status as Record<string, any>;
+  const safe = JSON.parse(JSON.stringify(raw));
+  if (safe.config) delete safe.config.path;
+  if (safe.token) {
+    delete safe.token.path;
+    delete safe.token.display_name;
+  }
+  if (safe.cache) delete safe.cache.path;
+  if (safe.oauth) {
+    safe.oauth = {
+      scope_status: safe.oauth.scope_status,
+      granted_scope_count: Array.isArray(safe.oauth.granted_scopes) ? safe.oauth.granted_scopes.length : 0,
+      missing_recommended_scope_count: Array.isArray(safe.oauth.missing_recommended_scopes) ? safe.oauth.missing_recommended_scopes.length : 0,
+    };
+  }
+  if (safe.client_checks?.hermes) {
+    delete safe.client_checks.hermes.config_path;
+    delete safe.client_checks.hermes.skill_path;
+  }
+  return safe;
+}
+
 function printDoctor(status: Awaited<ReturnType<typeof buildConnectionStatus>>): void {
   const ok = "✓";
   const fail = "✗";
@@ -187,9 +211,9 @@ function printDoctor(status: Awaited<ReturnType<typeof buildConnectionStatus>>):
   console.log("Checks");
   line(check(status.node.supported), "Node.js >=20", status.node.supported ? undefined : `version ${status.node.version}`);
   line(check(status.missing_env.length === 0), "Env vars", status.missing_env.length ? `missing: ${status.missing_env.join(", ")}` : undefined);
-  line(check(status.config.exists), "Local config", status.config.exists ? `${status.config.source} at ${status.config.path}` : "missing");
+  line(check(status.config.exists), "Local config", status.config.exists ? status.config.source : "missing");
   line(check(status.automatic_auth_supported), "Automatic auth redirect", status.automatic_auth_supported ? undefined : "not configured for local callback");
-  line(check(status.token.exists), "Token file", status.token.exists ? status.token.path : "missing");
+  line(check(status.token.exists), "Token file", status.token.exists ? "present" : "missing");
   if (status.token.exists) {
     line(status.token.secure_permissions === false ? fail : ok, "Token permissions", status.token.secure_permissions === false ? "insecure (chmod 600)" : undefined);
     line(check(Boolean(status.token.has_refresh_token)), "Refresh token", status.token.has_refresh_token ? undefined : "missing");
@@ -197,21 +221,21 @@ function printDoctor(status: Awaited<ReturnType<typeof buildConnectionStatus>>):
   const scopesOk = status.oauth.scope_status === "ok" || status.oauth.missing_recommended_scopes.length === 0;
   line(scopesOk ? ok : fail, "OAuth scopes", status.oauth.scope_status);
   if (status.oauth.granted_scopes.length > 0) {
-    console.log(`      granted:  ${status.oauth.granted_scopes.join(" ")}`);
+    console.log(`      granted:  ${status.oauth.granted_scopes.length} scope(s)`);
   }
   if (status.oauth.missing_recommended_scopes.length > 0) {
-    console.log(`      missing:  ${status.oauth.missing_recommended_scopes.join(" ")}`);
+    console.log(`      missing:  ${status.oauth.missing_recommended_scopes.length} scope(s)`);
   }
   line(info, "Privacy mode", status.privacy_mode);
-  line(status.cache.enabled ? ok : info, "Cache", status.cache.enabled ? `enabled at ${status.cache.path}` : "disabled");
+  line(status.cache.enabled ? ok : info, "Cache", status.cache.enabled ? "enabled" : "disabled");
   if (status.client_checks?.hermes) {
     const hermes = status.client_checks.hermes;
     console.log("");
     console.log("Hermes");
-    line(info, "config path", hermes.config_path);
+    line(info, "config path", hermes.config_path ? "configured" : "missing");
     line(check(hermes.google_health_server_configured), "configured");
     line(check(hermes.package_pinned), "pinned package");
-    line(check(hermes.skill_installed), "skill", hermes.skill_installed ? hermes.skill_path : "missing");
+    line(check(hermes.skill_installed), "skill", hermes.skill_installed ? "installed" : "missing");
     line(info, "direct tool prefix", hermes.direct_tool_prefix);
   }
   console.log("");
