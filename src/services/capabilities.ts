@@ -1,4 +1,4 @@
-import { DEFAULT_SCOPES, GOOGLE_HEALTH_BETA_NOTICE } from "../constants.js";
+import { DEFAULT_SCOPES, GOOGLE_HEALTH_BETA_NOTICE, GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE } from "../constants.js";
 
 export function buildCapabilities() {
   return {
@@ -16,7 +16,7 @@ export function buildCapabilities() {
         "Android-only Health Connect on-device storage",
         "raw accelerometer/device telemetry",
         "private Google endpoints",
-        "write/upload actions by default",
+        "write/upload actions unless explicitly enabled (see mutating_tools)",
         "medical diagnosis or treatment guidance"
       ]
     },
@@ -24,7 +24,13 @@ export function buildCapabilities() {
       type: "Google OAuth 2.0 authorization code with offline refresh tokens",
       token_storage: "Local token file with user-only permissions",
       recommended_redirect_uri: "http://127.0.0.1:3000/callback",
-      default_scopes: DEFAULT_SCOPES
+      default_scopes: DEFAULT_SCOPES,
+      write_scopes: [GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE]
+    },
+    mutating_tools: {
+      policy: "Write tools are opt-in, require explicit_user_intent=true, default to dry-run, and need the nutrition write scope.",
+      scope_preset: "nutrition-write",
+      planned: ["log_nutrition"] // FOUNDATION ONLY — tool not yet shipped
     },
     privacy_modes: [
       { mode: "summary", use_when: "Default-safe interpretation with identifiers and source details minimized." },

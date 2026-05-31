@@ -32,7 +32,7 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "smoke": "node scripts/smoke-tools.mjs",
-    "test": "npm run typecheck && npm run build && npm run smoke && npm run smoke:http && npm run test:summary && npm run test:privacy-cache && npm run test:http-retry && npm run test:http-cache && npm run test:cli-ux && npm run test:agent-readiness && npm run test:hermes-agent && npm run test:metadata",
+    "test": "npm run typecheck && npm run build && npm run smoke && npm run smoke:http && npm run test:summary && npm run test:privacy-cache && npm run test:http-retry && npm run test:http-cache && npm run test:cli-ux && npm run test:agent-readiness && npm run test:hermes-agent && npm run test:metadata && npm run test:write-gate && npm run test:nutrition-normalize && npm run test:v4-nutrition",
     "test:summary": "node scripts/summary-fixture-test.mjs",
     "prepublishOnly": "npm test",
     "smoke:http": "node scripts/smoke-http.mjs",
@@ -42,7 +42,10 @@
     "test:cli-ux": "node scripts/cli-ux-test.mjs",
     "test:agent-readiness": "node scripts/agent-readiness-test.mjs",
     "test:hermes-agent": "node scripts/hermes-agent-manifest-test.mjs",
-    "test:metadata": "node scripts/metadata-check.mjs"
+    "test:metadata": "node scripts/metadata-check.mjs",
+    "test:write-gate": "node scripts/remote-write-gate-test.mjs",
+    "test:nutrition-normalize": "node scripts/nutrition-normalize-test.mjs",
+    "test:v4-nutrition": "node scripts/v4-nutrition-mapping-test.mjs"
   },
   "keywords": [
     "mcp",

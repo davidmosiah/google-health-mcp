@@ -1,4 +1,4 @@
-import { DEFAULT_SCOPES, GOOGLE_HEALTH_BETA_NOTICE, NPM_PACKAGE_NAME, PINNED_NPM_PACKAGE, SERVER_VERSION } from "../constants.js";
+import { DEFAULT_SCOPES, GOOGLE_HEALTH_BETA_NOTICE, GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE, NPM_PACKAGE_NAME, PINNED_NPM_PACKAGE, SERVER_VERSION } from "../constants.js";
 
 export const AGENT_CLIENTS = ["generic", "claude", "cursor", "windsurf", "hermes", "openclaw"] as const;
 export type AgentClientName = typeof AGENT_CLIENTS[number];
@@ -26,6 +26,8 @@ const STANDARD_TOOLS = [
   "google_health_get_identity",
   "google_health_get_profile",
   "google_health_get_settings",
+  // SEAM: add "log_nutrition" here when the write tool ships (keep alphabetical, between
+  // get_settings and list_data_points).
   "google_health_list_data_points",
   "google_health_onboarding",
   "google_health_privacy_audit",
@@ -85,6 +87,12 @@ export function buildAgentManifest(client: AgentClientName = "generic") {
     ],
     standard_tools: STANDARD_TOOLS,
     resources: RESOURCES,
+    mutating_tools: {
+      enabled: false, // FOUNDATION present, tool not yet registered
+      write_scope: GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE,
+      scope_preset: "nutrition-write",
+      policy: "Opt-in only. Requires explicit_user_intent=true and defaults to dry-run."
+    },
     hermes: {
       config_path: "~/.hermes/config.yaml",
       skill_path: "~/.hermes/skills/google-health-mcp/SKILL.md",
@@ -103,7 +111,8 @@ export function buildAgentManifest(client: AgentClientName = "generic") {
       "Treat Google Health data as sensitive. Do not expose raw payloads unless the user asks for raw mode.",
       "Use data types in kebab case in endpoint tools, and snake_case names in filter expressions.",
       "For Hermes, do not restart the gateway for normal Google Health data access; reload MCP instead.",
-      "Do not provide medical diagnosis or treatment instructions. Frame outputs as health/training context."
+      "Do not provide medical diagnosis or treatment instructions. Frame outputs as health/training context.",
+      "Nutrition logging is a mutating, opt-in tool requiring explicit_user_intent=true, the nutrition-write scope, and dry-run-by-default. It is not enabled until the log_nutrition tool ships."
     ],
     troubleshooting: [
       { symptom: "missing GOOGLE_HEALTH_CLIENT_ID / GOOGLE_HEALTH_CLIENT_SECRET / GOOGLE_HEALTH_REDIRECT_URI", action: "Run `google-health-mcp-server setup` or set GOOGLE_HEALTH_* env vars after enabling Google Health API in Google Cloud." },

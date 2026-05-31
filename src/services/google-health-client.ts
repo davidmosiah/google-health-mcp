@@ -8,6 +8,7 @@ import {
   SERVER_VERSION
 } from "../constants.js";
 import type { GoogleHealthConfig, GoogleHealthTokenSet } from "../types.js";
+import { NUTRITION_DATA_TYPE } from "./google-v4-nutrition-datapoint.js";
 import { disabledCacheStatus, GoogleHealthCache, type CacheStatus } from "./cache.js";
 import { fetchWithCache, getCacheStats } from "./http-cache.js";
 import { fetchWithRetry } from "./http-retry.js";
@@ -136,6 +137,16 @@ export class GoogleHealthClient {
       pageToken: query.pageToken,
       dataSourceFamily: query.dataSourceFamily
     });
+  }
+
+  // SEAM (FOUNDATION ONLY): mutating create for nutrition DataPoints. Reuses the existing
+  // post → request plumbing (auth refresh, retry, cleanObject, redaction; POST is never cached).
+  // It is only invoked by the future log_nutrition tool when isLiveWriteAuthorized() is true —
+  // NEVER by doctor --live (only by --live-write, which stops before POST unless validateOnly
+  // is confirmed). The exact verb/path + data-type slug are TO-VERIFY — see the header of
+  // google-v4-nutrition-datapoint.ts before wiring this to a real Google endpoint.
+  async createNutritionDataPoint(body: Record<string, unknown>): Promise<unknown> {
+    return this.post(`/v4/users/me/dataTypes/${encodeDataType(NUTRITION_DATA_TYPE)}/dataPoints`, body);
   }
 
   async revokeAccess(): Promise<{ ok: true; token_path: string; local_tokens_cleared: boolean }> {

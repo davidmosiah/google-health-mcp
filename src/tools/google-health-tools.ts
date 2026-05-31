@@ -623,4 +623,23 @@ export function registerGoogleHealthTools(server: McpServer): void {
       }
     }
   );
+
+  // SEAM: the community log_nutrition WRITE tool registers here. It is intentionally NOT shipped
+  // in this foundation PR. The rails it consumes already exist:
+  //   - LogNutritionInputSchema (src/schemas/common.ts) — typed input contract
+  //   - checkRemoteWriteGate / isLiveWriteAuthorized (src/services/remote-write-gate.ts)
+  //   - estimateMeal / nutrientsForGrams (src/services/nutrition-normalize.ts)
+  //   - buildNutritionDataPointBody (src/services/google-v4-nutrition-datapoint.ts)
+  //   - client.createNutritionDataPoint(body) (src/services/google-health-client.ts)
+  // It must:
+  //   1) checkRemoteWriteGate({ explicit_user_intent, dry_run, granted_scopes }, { response_format, title: "Log Nutrition" })
+  //   2) resolve nutrients via estimateMeal()/nutrientsForGrams() (nutrition-normalize.ts)
+  //   3) buildNutritionDataPointBody() (google-v4-nutrition-datapoint.ts)
+  //   4) if isLiveWriteAuthorized → client.createNutritionDataPoint(body), else return the dry-run body
+  //   5) return makeResponse(...) / makeError(...) like google_health_profile_update.
+  // Annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
+  //   (openWorldHint TRUE — it talks to Google, unlike profile_update's false; matches google_health_exchange_code).
+  // BEFORE wiring the live POST, honor the TO-VERIFY flags in google-v4-nutrition-datapoint.ts
+  // (v4 create verb/path, nutrition data-type slug, DataPoint envelope, validateOnly param) and
+  // the write-scope string in constants.ts.
 }

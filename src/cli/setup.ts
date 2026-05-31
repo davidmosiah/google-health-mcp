@@ -139,7 +139,7 @@ async function promptForMissing(flags: Map<string, string>): Promise<Map<string,
   const secondPrompt = createPromptInterface({ input, output });
   try {
     if (!merged.has("redirect-uri")) merged.set("redirect-uri", (await secondPrompt.question("Google Health Redirect URI [http://127.0.0.1:3000/callback]: ")).trim() || "http://127.0.0.1:3000/callback");
-    if (!merged.has("scope-preset") && !merged.has("scopes")) merged.set("scope-preset", (await secondPrompt.question("Scope preset (basic/activity/sleep/full) [full]: ")).trim() || "full");
+    if (!merged.has("scope-preset") && !merged.has("scopes")) merged.set("scope-preset", (await secondPrompt.question("Scope preset (basic/activity/sleep/full/nutrition-write) [full]: ")).trim() || "full");
     if (!merged.has("privacy-mode")) merged.set("privacy-mode", (await secondPrompt.question("Privacy mode (summary/structured/raw) [structured]: ")).trim() || "structured");
   } finally {
     secondPrompt.close();

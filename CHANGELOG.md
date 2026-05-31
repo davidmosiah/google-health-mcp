@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Remote-write FOUNDATION (no write tool yet)** — `src/services/remote-write-gate.ts` (`checkRemoteWriteGate`/`isLiveWriteAuthorized`): enforces opt-in nutrition write scope, dry-run default, and explicit_user_intent=true with the same `USER_ACTION_REQUIRED` success-shaped refusal as `google_health_profile_update`.
+- **Opt-in `nutrition-write` scope preset** + `GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE` constant. Read-only presets (basic/activity/sleep/full) and `DEFAULT_SCOPES` are unchanged, so existing users never re-consent and `missing_recommended_scopes` is unaffected.
+- **`doctor --live` write coverage** — reports `nutrition_write_scope`; new `--live-write` flag does a dry-run round-trip that validates the v4 body and STOPS before any POST. The synthetic write checks never flip `api_reachable` (still read-derived).
+- **`src/services/nutrition-normalize.ts`** — offline, pure, bilingual (EN + pt-BR) food→NutrientMap engine ported from wellness-nourish (`scaleNutrients`/`nutrientsForGrams`/`estimateMeal` + a 35-food catalog). No network, no API key. `estimateMeal` is now sync (the source declared `async` but did no I/O).
+- **`src/services/google-v4-nutrition-datapoint.ts`** — maps NutrientMap → Google Health v4 create-DataPoint body + verified mg→g sodium unit shim. The v4 envelope/path/data-type slug are marked TO-VERIFY against official docs (no create body exists anywhere in the repo).
+- Capability + agent manifest `mutating_tools` flags so agents discover the opt-in, dry-run-default write policy.
+- Tests: `scripts/remote-write-gate-test.mjs`, `scripts/nutrition-normalize-test.mjs`, `scripts/v4-nutrition-mapping-test.mjs`.
+
+### Notes
+
+- The `log_nutrition` write tool is intentionally NOT included; this lays the rails + a documented seam (see the end of `registerGoogleHealthTools` in `src/tools/google-health-tools.ts`) for a community PR. No live remote mutation path is enabled.
+
 ## 0.4.5 - 2026-05-20
 
 ### Added

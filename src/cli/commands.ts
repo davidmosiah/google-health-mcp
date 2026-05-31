@@ -83,7 +83,8 @@ async function runDoctor(args: string[]): Promise<number> {
   const options = parseDoctorOptions(args);
   const fixes = options.fix ? fixLocalSetup(options.homeDir) : undefined;
   const status = await buildConnectionStatus({ client: options.client, homeDir: options.homeDir });
-  const liveCheck = options.live ? await runLiveCheck(status, options.homeDir) : undefined;
+  const live = options.live || options.liveWrite;
+  const liveCheck = live ? await runLiveCheck(status, options.homeDir, options.liveWrite) : undefined;
   const safeOutput = { ...(safeDoctorStatus(status) as Record<string, unknown>), ...(fixes ?? {}), ...(liveCheck ? { live_check: liveCheck } : {}) };
   if (options.json) {
     console.log(JSON.stringify(safeOutput, null, 2));
@@ -119,6 +120,8 @@ function printLiveCheck(liveCheck: LiveCheckResult): void {
   line(liveCheck.checks.identity.ok ? ok : fail, "Identity endpoint", liveCheck.checks.identity.error);
   line(liveCheck.checks.profile.ok ? ok : fail, "Profile endpoint", liveCheck.checks.profile.error);
   line(liveCheck.checks.settings.ok ? ok : fail, "Settings endpoint", liveCheck.checks.settings.error);
+  line(liveCheck.checks.nutrition_write_scope.ok ? ok : fail, "Nutrition write scope", liveCheck.checks.nutrition_write_scope.error);
+  line(liveCheck.checks.nutrition_write_dry_run.ok ? ok : fail, "Nutrition write dry-run", liveCheck.checks.nutrition_write_dry_run.error);
 }
 
 function parseDoctorOptions(args: string[]) {
@@ -142,6 +145,7 @@ function parseDoctorOptions(args: string[]) {
     strict: args.includes("--strict"),
     fix: args.includes("--fix"),
     live: args.includes("--live"),
+    liveWrite: args.includes("--live-write"),
     homeDir: homeDir ?? homedir(),
     client
   };
@@ -307,6 +311,7 @@ Usage:
   google-health-mcp-server doctor --client hermes
   google-health-mcp-server doctor --fix    Fix local config/token permissions, then check setup
   google-health-mcp-server doctor --live   Call safe Google Health endpoints to prove API reachability
+  google-health-mcp-server doctor --live-write  Also dry-run the nutrition write path (validates the v4 body; never POSTs)
   google-health-mcp-server support         Print a redacted support bundle for GitHub issues
   google-health-mcp-server support --json  Print redacted support bundle as JSON
   google-health-mcp-server auth            Authorize Google Health with local browser callback

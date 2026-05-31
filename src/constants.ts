@@ -17,6 +17,14 @@ export const DEFAULT_SCOPES = [
   "https://www.googleapis.com/auth/googlehealth.nutrition.readonly"
 ];
 
+// Opt-in nutrition WRITE scope. Intentionally excluded from DEFAULT_SCOPES so the read-only
+// presets (basic/activity/sleep/full) stay read-only and existing users are never forced to
+// re-consent to a write scope (and connection-status never reports it as a missing recommended
+// scope, since missing_recommended_scopes is derived purely from DEFAULT_SCOPES).
+// TO-VERIFY: confirm the exact scope string against https://developers.google.com/health/scopes.
+export const GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE =
+  "https://www.googleapis.com/auth/googlehealth.nutrition";
+
 export const DEFAULT_LIMIT = 100;
 export const MAX_GOOGLE_HEALTH_LIMIT = 10_000;
 export const DEFAULT_MAX_PAGES = 1;

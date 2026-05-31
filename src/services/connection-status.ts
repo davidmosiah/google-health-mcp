@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { DEFAULT_SCOPES, PINNED_NPM_PACKAGE } from "../constants.js";
+import { DEFAULT_SCOPES, GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE, PINNED_NPM_PACKAGE } from "../constants.js";
 import type { PrivacyMode, GoogleHealthTokenSet } from "../types.js";
 import { HERMES_DIRECT_TOOLS, type AgentClientName } from "./agent-manifest.js";
 import { loadConfigSources } from "./local-config.js";
@@ -54,6 +54,7 @@ export interface ConnectionStatus extends Record<string, unknown> {
     scope_status: "ok" | "missing_recommended" | "unknown" | "missing_token";
     activity_tools_ready: boolean;
     profile_tools_ready: boolean;
+    nutrition_write_ready: boolean;
   };
   cache: {
     enabled: boolean;
@@ -257,7 +258,8 @@ function buildOAuthScopeStatus(token: ConnectionStatus["token"]): ConnectionStat
       missing_recommended_scopes: DEFAULT_SCOPES,
       scope_status: "missing_token",
       activity_tools_ready: false,
-      profile_tools_ready: false
+      profile_tools_ready: false,
+      nutrition_write_ready: false
     };
   }
 
@@ -269,7 +271,8 @@ function buildOAuthScopeStatus(token: ConnectionStatus["token"]): ConnectionStat
       missing_recommended_scopes: [],
       scope_status: "unknown",
       activity_tools_ready: false,
-      profile_tools_ready: false
+      profile_tools_ready: false,
+      nutrition_write_ready: false
     };
   }
 
@@ -281,7 +284,8 @@ function buildOAuthScopeStatus(token: ConnectionStatus["token"]): ConnectionStat
     missing_recommended_scopes: missingRecommendedScopes,
     scope_status: missingRecommendedScopes.length === 0 ? "ok" : "missing_recommended",
     activity_tools_ready: hasAnyScope(granted, ["https://www.googleapis.com/auth/googlehealth.activity_and_fitness", "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly"]),
-    profile_tools_ready: hasAnyScope(granted, ["https://www.googleapis.com/auth/googlehealth.profile", "https://www.googleapis.com/auth/googlehealth.profile.readonly"])
+    profile_tools_ready: hasAnyScope(granted, ["https://www.googleapis.com/auth/googlehealth.profile", "https://www.googleapis.com/auth/googlehealth.profile.readonly"]),
+    nutrition_write_ready: hasAnyScope(granted, [GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE])
   };
 }
 
