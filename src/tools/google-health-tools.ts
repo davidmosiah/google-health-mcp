@@ -234,7 +234,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
 
   server.registerTool("google_health_exchange_code", {
     title: "Exchange Google Health OAuth Code",
-    description: "Exchange a Google OAuth authorization code for local tokens. Tokens are stored locally with 0600 permissions and are never returned.",
+    description: "Exchange a Google OAuth authorization code for local tokens. Tokens are stored locally with 0600 permissions and are never returned. Gated: requires explicit user intent — agents must not call this autonomously.",
     inputSchema: ExchangeCodeInputSchema.shape,
     outputSchema: ExchangeCodeOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
@@ -449,7 +449,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
 
   server.registerTool("google_health_revoke_access", {
     title: "Revoke Google Health OAuth Access",
-    description: "Revoke the current Google OAuth grant and delete the local token file. Use only when the user explicitly wants to disconnect Google Health.",
+    description: "Revoke the current Google OAuth grant and delete the local token file. Use only when the user explicitly wants to disconnect Google Health. Gated: requires explicit user intent — agents must not call this autonomously.",
     inputSchema: ResponseOnlyInputSchema.shape,
     outputSchema: RevokeAccessOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
