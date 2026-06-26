@@ -33,6 +33,18 @@ export function makeEndpointError(
   };
 }
 
+export function makeSummaryError(
+  kind: "daily_summary" | "weekly_summary",
+  message: string
+): ToolResponse<{ kind: string; generated_at: string; error: string }> {
+  const safeMessage = redactErrorMessage(message);
+  return {
+    isError: true,
+    content: [{ type: "text", text: `Error: ${safeMessage}` }],
+    structuredContent: { kind, generated_at: new Date().toISOString(), error: safeMessage }
+  };
+}
+
 export function bulletList(title: string, fields: Record<string, unknown>): string {
   const lines = [`# ${title}`, ""];
   for (const [key, value] of Object.entries(fields)) {

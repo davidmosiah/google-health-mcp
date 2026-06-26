@@ -34,7 +34,7 @@ import { buildCapabilities } from "../services/capabilities.js";
 import { buildConnectionStatus } from "../services/connection-status.js";
 import { buildWellnessContext, formatWellnessContextMarkdown } from "../services/context.js";
 import { getConfig } from "../services/config.js";
-import { bulletList, formatDataPointsMarkdown, makeEndpointError, makeError, makeResponse } from "../services/format.js";
+import { bulletList, formatDataPointsMarkdown, makeEndpointError, makeError, makeResponse, makeSummaryError } from "../services/format.js";
 import { buildDataInventory, buildDataTypeCatalog, formatDataTypeCatalogMarkdown, formatInventoryMarkdown } from "../services/inventory.js";
 import { applyPrivacy, resolvePrivacyMode } from "../services/privacy.js";
 import {
@@ -493,7 +493,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
       const summary = await buildDailySummary(client(), params);
       return makeResponse(summary, params.response_format, formatSummaryMarkdown(summary));
     } catch (error) {
-      return makeError((error as Error).message);
+      return makeSummaryError("daily_summary", (error as Error).message);
     }
   });
 
@@ -508,7 +508,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
       const summary = await buildWeeklySummary(client(), params);
       return makeResponse(summary, params.response_format, formatSummaryMarkdown(summary));
     } catch (error) {
-      return makeError((error as Error).message);
+      return makeSummaryError("weekly_summary", (error as Error).message);
     }
   });
 
