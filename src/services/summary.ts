@@ -104,6 +104,22 @@ function sleepMinutes(points: UnknownRecord[]): number | undefined {
   return Math.max(...minutes);
 }
 
+// ActiveZoneMinutesRollupValue returns three separate heart-zone buckets; total AZM is their sum.
+function activeZoneTotal(azm: unknown): number | undefined {
+  if (!isObject(azm)) return undefined;
+  const zones = ["sumInFatBurnHeartZone", "sumInCardioHeartZone", "sumInPeakHeartZone"];
+  const values = zones.map((z) => numberFrom(azm[z])).filter((v): v is number => v !== undefined);
+  if (values.length === 0) return findNestedNumber(azm, ["minutesSum", "totalMinutesSum", "valueSum"]);
+  return values.reduce((sum, v) => sum + v, 0);
+}
+
+// WeightRollupValue.weightGramsAvg is in grams; convert to kg.
+function weightKg(weight: unknown): number | undefined {
+  const grams = findNestedNumber(weight, ["weightGramsAvg"]);
+  if (grams !== undefined) return grams / 1000;
+  return findNestedNumber(weight, ["kilogramsAvg", "kilograms", "valueAvg"]);
+}
+
 function distanceMeters(distance: unknown): number | undefined {
   // Prefer fields already in meters.
   const meters = findNestedNumber(distance, ["metersSum", "distanceMetersSum"]);
@@ -124,25 +140,34 @@ function dailyStats(bundle: Awaited<ReturnType<typeof dailyBundle>>) {
   const heartPoint = reconciled(bundle.heartRate)[0];
   const hrvPoint = reconciled(bundle.hrv)[0];
 
+  const stepsVal = findNestedNumber(steps, ["countSum", "count"]);
+  const distanceVal = distanceMeters(distance);
+  const caloriesVal = findNestedNumber(calories, ["kcalSum", "kilocaloriesSum", "caloriesSum", "valueSum"]);
+  const azmVal = activeZoneTotal(activeZoneMinutes);
+  const sleepVal = sleepMinutes(reconciled(bundle.sleep));
+  const heartVal = findNestedNumber(heartPoint, ["beatsPerMinute", "bpm", "value", "restingHeartRate"]);
+  const hrvVal = findNestedNumber(hrvPoint, ["rmssd", "rmssdMillis", "value"]);
+  const weightVal = weightKg(weight);
+
   return {
     date: bundle.date,
-    steps: findNestedNumber(steps, ["countSum", "count"]),
-    distance_meters: distanceMeters(distance),
-    calories_out: findNestedNumber(calories, ["kilocaloriesSum", "caloriesSum", "valueSum"]),
-    active_zone_minutes: findNestedNumber(activeZoneMinutes, ["minutesSum", "totalMinutesSum", "valueSum"]),
-    sleep_minutes: sleepMinutes(reconciled(bundle.sleep)),
-    resting_heart_rate: findNestedNumber(heartPoint, ["beatsPerMinute", "bpm", "value", "restingHeartRate"]),
-    hrv_rmssd: findNestedNumber(hrvPoint, ["rmssd", "rmssdMillis", "value"]),
-    weight_kg: findNestedNumber(weight, ["kilogramsAvg", "kilograms", "valueAvg"]),
+    steps: stepsVal,
+    distance_meters: distanceVal,
+    calories_out: caloriesVal,
+    active_zone_minutes: azmVal,
+    sleep_minutes: sleepVal,
+    resting_heart_rate: heartVal,
+    hrv_rmssd: hrvVal,
+    weight_kg: weightVal,
     missing_or_failed: {
-      steps: isError(bundle.steps),
-      distance: isError(bundle.distance),
-      calories: isError(bundle.calories),
-      active_zone_minutes: isError(bundle.activeZoneMinutes),
-      sleep: isError(bundle.sleep),
-      heart: isError(bundle.heartRate),
-      hrv: isError(bundle.hrv),
-      weight: isError(bundle.weight)
+      steps: stepsVal === undefined,
+      distance: distanceVal === undefined,
+      calories: caloriesVal === undefined,
+      active_zone_minutes: azmVal === undefined,
+      sleep: sleepVal === undefined,
+      heart: heartVal === undefined,
+      hrv: hrvVal === undefined,
+      weight: weightVal === undefined
     }
   };
 }

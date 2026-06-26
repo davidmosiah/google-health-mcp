@@ -6,9 +6,9 @@ const fakeClient = {
   async dailyRollup({ dataType }) {
     if (dataType === 'steps') return { rollupDataPoints: [{ steps: { countSum: '9000' } }] };
     if (dataType === 'distance') return { rollupDataPoints: [{ distance: { metersSum: '7200' } }] };
-    if (dataType === 'total-calories') return { rollupDataPoints: [{ totalCalories: { kilocaloriesSum: '2400' } }] };
-    if (dataType === 'active-zone-minutes') return { rollupDataPoints: [{ activeZoneMinutes: { minutesSum: '60' } }] };
-    if (dataType === 'weight') return { rollupDataPoints: [{ weight: { kilogramsAvg: 80 } }] };
+    if (dataType === 'total-calories') return { rollupDataPoints: [{ totalCalories: { kcalSum: 2400 } }] };
+    if (dataType === 'active-zone-minutes') return { rollupDataPoints: [{ activeZoneMinutes: { sumInFatBurnHeartZone: '20', sumInCardioHeartZone: '25', sumInPeakHeartZone: '15' } }] };
+    if (dataType === 'weight') return { rollupDataPoints: [{ weight: { weightGramsAvg: 80000 } }] };
     throw new Error(`unexpected rollup ${dataType}`);
   },
   async reconcileDataPoints({ dataType }) {
@@ -31,6 +31,9 @@ assert.equal(daily.source, 'google_health');
 assert.equal(daily.scorecard.steps, 9000);
 assert.equal(daily.scorecard.sleep_minutes, 430);
 assert.equal(daily.scorecard.resting_heart_rate, 58);
+assert.equal(daily.scorecard.calories_out, 2400);
+assert.equal(daily.scorecard.active_zone_minutes, 60);
+assert.equal(daily.scorecard.weight_kg, 80);
 assert.ok(daily.diagnostic.action_candidates.length >= 2);
 
 const weekly = await buildWeeklySummary(fakeClient, { days: 7, compare_days: 7, timezone: 'UTC' });
