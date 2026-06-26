@@ -19,6 +19,20 @@ export function makeError(message: string): ToolResponse<{ error: string }> {
   };
 }
 
+export function makeEndpointError(
+  endpoint: string,
+  mode: "summary" | "structured" | "raw",
+  message: string,
+  format: ResponseFormat
+): ToolResponse<{ endpoint: string; privacy_mode: string; data: { error: string } }> {
+  const safeMessage = redactErrorMessage(message);
+  return {
+    isError: true,
+    content: [{ type: "text", text: format === "json" ? JSON.stringify({ endpoint, privacy_mode: mode, data: { error: safeMessage } }, null, 2) : `Error: ${safeMessage}` }],
+    structuredContent: { endpoint, privacy_mode: mode, data: { error: safeMessage } }
+  };
+}
+
 export function bulletList(title: string, fields: Record<string, unknown>): string {
   const lines = [`# ${title}`, ""];
   for (const [key, value] of Object.entries(fields)) {
