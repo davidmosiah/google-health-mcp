@@ -268,7 +268,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
   }, async ({ response_format, privacy_mode }) => {
     const endpoint = "/v4/users/me/identity";
-    let mode: "summary" | "structured" | "raw" = "structured";
+    let mode: "summary" | "structured" | "raw" = privacy_mode ?? "structured";
     try {
       const config = getConfig();
       mode = resolvePrivacyMode(config, privacy_mode);
@@ -287,7 +287,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
   }, async ({ response_format, privacy_mode }) => {
     const endpoint = "/v4/users/me/profile";
-    let mode: "summary" | "structured" | "raw" = "structured";
+    let mode: "summary" | "structured" | "raw" = privacy_mode ?? "structured";
     try {
       const config = getConfig();
       mode = resolvePrivacyMode(config, privacy_mode);
@@ -306,7 +306,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
   }, async ({ response_format, privacy_mode }) => {
     const endpoint = "/v4/users/me/settings";
-    let mode: "summary" | "structured" | "raw" = "structured";
+    let mode: "summary" | "structured" | "raw" = privacy_mode ?? "structured";
     try {
       const config = getConfig();
       mode = resolvePrivacyMode(config, privacy_mode);
@@ -325,7 +325,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
   }, async (params) => {
     const endpoint = `/v4/users/me/dataTypes/${params.data_type}/dataPoints`;
-    let mode: "summary" | "structured" | "raw" = "structured";
+    let mode: "summary" | "structured" | "raw" = params.privacy_mode ?? "structured";
     try {
       const config = getConfig();
       mode = resolvePrivacyMode(config, params.privacy_mode);
@@ -349,7 +349,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
   }, async (params) => {
     const endpoint = `/v4/users/me/dataTypes/${params.data_type}/dataPoints:reconcile`;
-    let mode: "summary" | "structured" | "raw" = "structured";
+    let mode: "summary" | "structured" | "raw" = params.privacy_mode ?? "structured";
     try {
       const config = getConfig();
       mode = resolvePrivacyMode(config, params.privacy_mode);
@@ -374,7 +374,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
   }, async (params) => {
     const endpoint = `/v4/users/me/dataTypes/${params.data_type}/dataPoints:dailyRollUp`;
-    let mode: "summary" | "structured" | "raw" = "structured";
+    let mode: "summary" | "structured" | "raw" = params.privacy_mode ?? "structured";
     try {
       const config = getConfig();
       mode = resolvePrivacyMode(config, params.privacy_mode);
@@ -401,7 +401,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
   }, async (params) => {
     const endpoint = `/v4/users/me/dataTypes/${params.data_type}/dataPoints:rollUp`;
-    let mode: "summary" | "structured" | "raw" = "structured";
+    let mode: "summary" | "structured" | "raw" = params.privacy_mode ?? "structured";
     try {
       const config = getConfig();
       mode = resolvePrivacyMode(config, params.privacy_mode);
@@ -493,7 +493,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
       const summary = await buildDailySummary(client(), params);
       return makeResponse(summary, params.response_format, formatSummaryMarkdown(summary));
     } catch (error) {
-      return makeSummaryError("daily_summary", (error as Error).message);
+      return makeSummaryError("daily_summary", (error as Error).message, params.response_format);
     }
   });
 
@@ -508,7 +508,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
       const summary = await buildWeeklySummary(client(), params);
       return makeResponse(summary, params.response_format, formatSummaryMarkdown(summary));
     } catch (error) {
-      return makeSummaryError("weekly_summary", (error as Error).message);
+      return makeSummaryError("weekly_summary", (error as Error).message, params.response_format);
     }
   });
 

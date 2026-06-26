@@ -35,13 +35,15 @@ export function makeEndpointError(
 
 export function makeSummaryError(
   kind: "daily_summary" | "weekly_summary",
-  message: string
+  message: string,
+  format: ResponseFormat
 ): ToolResponse<{ kind: string; generated_at: string; error: string }> {
   const safeMessage = redactErrorMessage(message);
+  const payload = { kind, generated_at: new Date().toISOString(), error: safeMessage };
   return {
     isError: true,
-    content: [{ type: "text", text: `Error: ${safeMessage}` }],
-    structuredContent: { kind, generated_at: new Date().toISOString(), error: safeMessage }
+    content: [{ type: "text", text: format === "json" ? JSON.stringify(payload, null, 2) : `Error: ${safeMessage}` }],
+    structuredContent: payload
   };
 }
 

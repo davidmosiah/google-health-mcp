@@ -172,10 +172,6 @@ function dailyStats(bundle: Awaited<ReturnType<typeof dailyBundle>>) {
   };
 }
 
-function isError(value: unknown): boolean {
-  return isObject(value) && typeof value.error === "string";
-}
-
 function avg(values: Array<number | undefined>): number | undefined {
   const nums = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
   if (!nums.length) return undefined;
