@@ -87,7 +87,7 @@ export interface SetupFeedbackReport {
 }
 
 export async function buildSupportReport(options: SupportReportOptions): Promise<SupportReport> {
-  const status = await buildConnectionStatus({ homeDir: options.homeDir, client: options.client });
+  const status = await buildConnectionStatus({ homeDir: options.homeDir, client: options.client, tokenInspection: "metadata" });
   const report: Omit<SupportReport, "issue_body"> = {
     redacted: true,
     package: {
@@ -127,7 +127,7 @@ export async function buildSupportReport(options: SupportReportOptions): Promise
 }
 
 export async function buildSetupFeedbackReport(options: SupportReportOptions): Promise<SetupFeedbackReport> {
-  const status = await buildConnectionStatus({ homeDir: options.homeDir, client: options.client });
+  const status = await buildConnectionStatus({ homeDir: options.homeDir, client: options.client, tokenInspection: "metadata" });
   const hermes = status.client_checks?.hermes;
   const report: Omit<SetupFeedbackReport, "issue_body"> = {
     kind: "google_health_setup_feedback",

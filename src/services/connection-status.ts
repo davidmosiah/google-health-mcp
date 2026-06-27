@@ -1,4 +1,4 @@
-import { promises as fs } from "node:fs";
+import { constants as fsConstants, promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_SCOPES, GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE, PINNED_NPM_PACKAGE } from "../constants.js";
@@ -13,6 +13,7 @@ export interface ConnectionStatusOptions {
   homeDir?: string;
   nowMs?: number;
   client?: AgentClientName;
+  tokenInspection?: "full" | "metadata";
 }
 
 export interface ConnectionStatus extends Record<string, unknown> {
@@ -93,7 +94,7 @@ export async function buildConnectionStatus(options: ConnectionStatusOptions = {
   const redirectUri = value("GOOGLE_HEALTH_REDIRECT_URI");
   const requiredEnv = Object.fromEntries(REQUIRED_ENV.map((name) => [name, Boolean(value(name as keyof typeof sources.values))]));
   const missingEnv = REQUIRED_ENV.filter((name) => !requiredEnv[name]);
-  const token = await inspectToken(tokenPath, nowSeconds);
+  const token = await inspectToken(tokenPath, nowSeconds, options.tokenInspection ?? "full");
   const oauth = buildOAuthScopeStatus(token);
   const nodeSupported = Number(process.versions.node.split(".")[0] ?? 0) >= 20;
   const automaticAuthSupported = Boolean(redirectUri && isLocalHttpRedirect(redirectUri));
@@ -151,11 +152,26 @@ function isLocalHttpRedirect(value: string): boolean {
   }
 }
 
-async function inspectToken(path: string, nowSeconds: number): Promise<ConnectionStatus["token"]> {
+async function inspectToken(path: string, nowSeconds: number, mode: "full" | "metadata"): Promise<ConnectionStatus["token"]> {
   try {
-    const [stat, text] = await Promise.all([fs.stat(path), fs.readFile(path, "utf8")]);
+    const stat = await fs.stat(path);
     const permissions = (stat.mode & 0o777).toString(8).padStart(3, "0");
     const securePermissions = process.platform === "win32" ? true : (stat.mode & 0o077) === 0;
+    try {
+      await fs.access(path, fsConstants.R_OK);
+    } catch (error) {
+      return { path, exists: true, readable: false, permissions, secure_permissions: securePermissions, error: (error as Error).message };
+    }
+    if (mode === "metadata") {
+      return {
+        path,
+        exists: true,
+        readable: true,
+        permissions,
+        secure_permissions: securePermissions
+      };
+    }
+    const text = await fs.readFile(path, "utf8");
     const token = JSON.parse(text) as Partial<GoogleHealthTokenSet>;
     const expiresAt = typeof token.expires_at === "number" ? token.expires_at : undefined;
     return {
