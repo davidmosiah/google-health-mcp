@@ -82,15 +82,18 @@ async function runSupport(args: string[]): Promise<number> {
   const options = parseSupportOptions(args);
   if (options.feedback) {
     const report = await buildSetupFeedbackReport({ homeDir: options.homeDir, client: options.client });
-    if (options.json) console.log(JSON.stringify(report, null, 2));
-    else console.log(formatSetupFeedbackReport(report));
+    writeCliOutput(options.json ? JSON.stringify(report, null, 2) : formatSetupFeedbackReport(report));
     return 0;
   }
   const report = await buildSupportReport({ homeDir: options.homeDir, client: options.client });
   const safeReport = safeSupportReport(report);
-  if (options.json) console.log(JSON.stringify(safeReport, null, 2));
-  else console.log(formatSafeSupportReport(safeReport));
+  writeCliOutput(options.json ? JSON.stringify(safeReport, null, 2) : formatSafeSupportReport(safeReport));
   return 0;
+}
+
+function writeCliOutput(value: string): void {
+  process.stdout.write(value);
+  process.stdout.write("\n");
 }
 
 async function runDoctor(args: string[]): Promise<number> {
