@@ -1,5 +1,5 @@
 export const SERVER_NAME = "google-health-mcp-server";
-export const SERVER_VERSION = "0.5.0";
+export const SERVER_VERSION = "0.5.1";
 export const NPM_PACKAGE_NAME = "google-health-mcp-unofficial";
 export const PINNED_NPM_PACKAGE = `${NPM_PACKAGE_NAME}@${SERVER_VERSION}`;
 
@@ -41,19 +41,54 @@ export const GOOGLE_HEALTH_DATA_SOURCE_FAMILIES = [
 // verbs accept the slug (list = listDataPoints, reconcile = reconcileDataPoints, rollup = dailyRollUp
 // + rollUp). Slugs stay in kebab case; the API still accepts other v4 slugs, so this is a guide, not
 // a hard allow-list (GoogleHealthDataTypeSchema remains an open kebab-case string).
+export const GOOGLE_HEALTH_DATA_TYPES_SOURCE = {
+  url: "https://developers.google.com/health/data-types",
+  page_last_updated: "2026-06-17",
+  captured_at: "2026-06-27"
+} as const;
+
+export type GoogleHealthDataTypeSupport = "list" | "reconcile" | "rollup";
+
 export const GOOGLE_HEALTH_DATA_TYPES = [
-  { slug: "steps", supports: ["list", "reconcile", "rollup"], unit: "count", scope: "activity_and_fitness" },
-  { slug: "distance", supports: ["list", "reconcile", "rollup"], unit: "meters", scope: "activity_and_fitness" },
-  { slug: "active-zone-minutes", supports: ["list", "reconcile", "rollup"], unit: "minutes", scope: "activity_and_fitness" },
-  { slug: "total-calories", supports: ["list", "reconcile", "rollup"], unit: "kilocalories", scope: "activity_and_fitness" },
-  { slug: "heart-rate", supports: ["list", "reconcile", "rollup"], unit: "bpm", scope: "activity_and_fitness" },
-  { slug: "daily-resting-heart-rate", supports: ["list", "reconcile"], unit: "bpm", scope: "activity_and_fitness" },
-  { slug: "daily-heart-rate-variability", supports: ["list", "reconcile"], unit: "milliseconds", scope: "activity_and_fitness" },
-  { slug: "sleep", supports: ["list", "reconcile"], unit: "minutes", scope: "sleep" },
-  { slug: "weight", supports: ["list", "reconcile", "rollup"], unit: "kilograms", scope: "health_metrics_and_measurements" },
-  { slug: "body-fat", supports: ["list", "reconcile", "rollup"], unit: "percent", scope: "health_metrics_and_measurements" },
-  { slug: "exercise", supports: ["list", "reconcile"], unit: "session", scope: "activity_and_fitness" },
-  { slug: "nutrition", supports: ["list", "reconcile"], unit: "macros", scope: "nutrition" }
+  { slug: "active-energy-burned", name: "Active Energy Burned", kind: "Interval", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "energy", scope: "activity_and_fitness" },
+  { slug: "active-minutes", name: "Active Minutes", kind: "Interval", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "minutes", scope: "activity_and_fitness" },
+  { slug: "active-zone-minutes", name: "Active Zone Minutes", kind: "Interval", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "minutes", scope: "activity_and_fitness" },
+  { slug: "activity-level", name: "Activity Level", kind: "Interval", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "level", scope: "activity_and_fitness" },
+  { slug: "altitude", name: "Altitude", kind: "Interval", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "altitude", scope: "activity_and_fitness" },
+  { slug: "blood-glucose", name: "Blood Glucose", kind: "Sample", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "get", "reconcile", "rollup", "dailyRollup"], unit: "glucose", scope: "health_metrics_and_measurements" },
+  { slug: "body-fat", name: "Body Fat", kind: "Sample", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "get", "reconcile", "rollup", "dailyRollup", "create", "update", "batchDelete"], unit: "percent", scope: "health_metrics_and_measurements" },
+  { slug: "calories-in-heart-rate-zone", name: "Calories In Heart Rate Zone", kind: "Interval", supports: ["rollup"], official_operations: ["rollup", "dailyRollup"], unit: "kilocalories", scope: "activity_and_fitness" },
+  { slug: "core-body-temperature", name: "Core Body Temperature", kind: "Sample", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "get", "reconcile", "rollup", "dailyRollup"], unit: "temperature", scope: "health_metrics_and_measurements" },
+  { slug: "daily-heart-rate-variability", name: "Daily Heart Rate Variability", kind: "Daily", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "milliseconds", scope: "health_metrics_and_measurements" },
+  { slug: "daily-heart-rate-zones", name: "Daily Heart Rate Zones", kind: "Daily", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "zones", scope: "health_metrics_and_measurements" },
+  { slug: "daily-oxygen-saturation", name: "Daily Oxygen Saturation", kind: "Daily", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "percent", scope: "health_metrics_and_measurements" },
+  { slug: "daily-respiratory-rate", name: "Daily Respiratory Rate", kind: "Daily", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "breaths_per_minute", scope: "health_metrics_and_measurements" },
+  { slug: "daily-resting-heart-rate", name: "Daily Resting Heart Rate", kind: "Daily", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "bpm", scope: "health_metrics_and_measurements" },
+  { slug: "daily-sleep-temperature-derivations", name: "Daily Sleep Temperature Derivations", kind: "Daily", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "temperature_delta", scope: "health_metrics_and_measurements" },
+  { slug: "daily-vo2-max", name: "Daily VO2 Max", kind: "Daily", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "vo2_max", scope: "activity_and_fitness" },
+  { slug: "distance", name: "Distance", kind: "Interval", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "meters", scope: "activity_and_fitness" },
+  { slug: "electrocardiogram", name: "Electrocardiogram (ECG)", kind: "Session", supports: ["list"], official_operations: ["list"], unit: "session", scope: "ecg" },
+  { slug: "exercise", name: "Exercise", kind: "Session", supports: ["list", "reconcile"], official_operations: ["list", "get", "reconcile", "create", "update", "batchDelete"], unit: "session", scope: "activity_and_fitness" },
+  { slug: "floors", name: "Floors", kind: "Interval", supports: ["reconcile", "rollup"], official_operations: ["reconcile", "rollup", "dailyRollup"], unit: "floors", scope: "activity_and_fitness" },
+  { slug: "food", name: "Food", kind: "Food", supports: ["list"], official_operations: ["list", "get"], unit: "food", scope: "nutrition" },
+  { slug: "food-measurement-unit", name: "Food Measurement Unit", kind: "Food", supports: ["list"], official_operations: ["list", "get"], unit: "unit", scope: "nutrition" },
+  { slug: "heart-rate", name: "Heart Rate", kind: "Sample", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "bpm", scope: "health_metrics_and_measurements" },
+  { slug: "heart-rate-variability", name: "Heart Rate Variability", kind: "Sample", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "milliseconds", scope: "health_metrics_and_measurements" },
+  { slug: "height", name: "Height", kind: "Sample", supports: ["list", "reconcile"], official_operations: ["list", "get", "reconcile", "create", "update", "batchDelete"], unit: "meters", scope: "health_metrics_and_measurements" },
+  { slug: "hydration-log", name: "Hydration Log", kind: "Session", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "get", "reconcile", "rollup", "dailyRollup", "create", "update", "batchDelete"], unit: "volume", scope: "nutrition" },
+  { slug: "irregular-rhythm-notification", name: "Irregular Rhythm Notification", kind: "Session", supports: ["list"], official_operations: ["list"], unit: "notification", scope: "irn" },
+  { slug: "nutrition-log", name: "Nutrition Log", kind: "Sample", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "get", "reconcile", "rollup", "dailyRollup", "create", "update", "batchDelete"], unit: "nutrients", scope: "nutrition" },
+  { slug: "oxygen-saturation", name: "Oxygen Saturation", kind: "Sample", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "percent", scope: "health_metrics_and_measurements" },
+  { slug: "respiratory-rate-sleep-summary", name: "Respiratory Rate Sleep Summary", kind: "Sample", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "breaths_per_minute", scope: "health_metrics_and_measurements" },
+  { slug: "run-vo2-max", name: "Run VO2 Max", kind: "Sample", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "vo2_max", scope: "activity_and_fitness" },
+  { slug: "sedentary-period", name: "Sedentary Period", kind: "Interval", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "duration", scope: "activity_and_fitness" },
+  { slug: "sleep", name: "Sleep", kind: "Session", supports: ["list", "reconcile"], official_operations: ["list", "get", "reconcile", "create", "update", "batchDelete"], unit: "session", scope: "sleep" },
+  { slug: "steps", name: "Steps", kind: "Interval", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "count", scope: "activity_and_fitness" },
+  { slug: "swim-lengths-data", name: "Swim Lengths Data", kind: "Interval", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "lengths", scope: "activity_and_fitness" },
+  { slug: "time-in-heart-rate-zone", name: "Time in Heart Rate Zone", kind: "Interval", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "reconcile", "rollup", "dailyRollup"], unit: "duration", scope: "activity_and_fitness" },
+  { slug: "total-calories", name: "Total Calories", kind: "Interval", supports: ["rollup"], official_operations: ["rollup", "dailyRollup"], unit: "kilocalories", scope: "activity_and_fitness" },
+  { slug: "vo2-max", name: "VO2 Max", kind: "Sample", supports: ["list", "reconcile"], official_operations: ["list", "reconcile"], unit: "vo2_max", scope: "activity_and_fitness" },
+  { slug: "weight", name: "Weight", kind: "Sample", supports: ["list", "reconcile", "rollup"], official_operations: ["list", "get", "reconcile", "rollup", "dailyRollup", "create", "update", "batchDelete"], unit: "kilograms", scope: "health_metrics_and_measurements" }
 ] as const;
 
 export const GOOGLE_HEALTH_DATA_TYPE_SLUGS = GOOGLE_HEALTH_DATA_TYPES.map((entry) => entry.slug);

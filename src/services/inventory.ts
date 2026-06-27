@@ -1,4 +1,4 @@
-import { GOOGLE_HEALTH_DATA_TYPES } from "../constants.js";
+import { GOOGLE_HEALTH_DATA_TYPES, GOOGLE_HEALTH_DATA_TYPES_SOURCE } from "../constants.js";
 import { buildCapabilities } from "./capabilities.js";
 
 type SupportedDataCategory = {
@@ -106,15 +106,19 @@ export function formatInventoryMarkdown(inventory: ReturnType<typeof buildDataIn
 export function buildDataTypeCatalog() {
   const data_types = GOOGLE_HEALTH_DATA_TYPES.map((entry) => ({
     slug: entry.slug,
+    name: entry.name,
+    kind: entry.kind,
     supports: [...entry.supports],
+    official_operations: [...entry.official_operations],
     unit: entry.unit,
     scope: entry.scope
   }));
   return {
     kind: "data_type_catalog" as const,
     source: "google-health-mcp-unofficial",
+    official_source: GOOGLE_HEALTH_DATA_TYPES_SOURCE,
     generated_at: new Date().toISOString(),
-    note: "kebab-case slugs accepted by the data_type parameter. supports = endpoint verbs (list, reconcile, rollup) that accept the slug. Other valid Google Health v4 slugs also work; this list is the exercised, recommended set.",
+    note: "kebab-case slugs accepted by the data_type parameter. official_operations mirrors the Google Health API data-type table; supports is the connector-safe read-only subset this MCP can validate with list, reconcile and rollup.",
     count: data_types.length,
     data_types
   };
@@ -122,12 +126,13 @@ export function buildDataTypeCatalog() {
 
 export function formatDataTypeCatalogMarkdown(catalog: ReturnType<typeof buildDataTypeCatalog>): string {
   const rows = catalog.data_types.map(
-    (entry) => `- \`${entry.slug}\` — unit: ${entry.unit}; supports: ${entry.supports.join(", ")}; scope: ${entry.scope}`
+    (entry) => `- \`${entry.slug}\` — ${entry.name}; kind: ${entry.kind}; unit: ${entry.unit}; supports: ${entry.supports.join(", ") || "none"}; scope: ${entry.scope}`
   );
   return [
     "# Google Health Data Types",
     "",
     "- **count**: " + catalog.count,
+    "- **official_source**: " + catalog.official_source.url + " (last updated " + catalog.official_source.page_last_updated + ")",
     "- **supports legend**: list (listDataPoints), reconcile (reconcileDataPoints), rollup (dailyRollUp / rollUp)",
     "",
     "## Supported slugs",

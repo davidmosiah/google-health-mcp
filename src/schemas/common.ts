@@ -24,6 +24,14 @@ export const ResponseOnlyInputSchema = z.object({
   response_format: ResponseFormatSchema
 }).strict();
 
+export const CoverageInputSchema = z.object({
+  live: z.boolean().default(false).describe("Default false. When true, calls read-only Google Health endpoints after OAuth setup and returns only redacted coverage status."),
+  date: DateSchema,
+  data_source_family: DataSourceFamilySchema,
+  data_types: z.array(GoogleHealthDataTypeSchema).max(50).optional().describe("Optional subset of data_type slugs. Omit to validate the full local catalog."),
+  response_format: ResponseFormatSchema
+}).strict();
+
 export const AgentManifestInputSchema = z.object({
   client: AgentClientSchema,
   response_format: ResponseFormatSchema
@@ -334,16 +342,29 @@ export const DataInventoryOutputSchema = z.object({
 export const DataTypeCatalogOutputSchema = z.object({
   kind: z.literal("data_type_catalog"),
   source: z.string(),
+  official_source: z.object({
+    url: z.string(),
+    page_last_updated: z.string(),
+    captured_at: z.string()
+  }).strict(),
   generated_at: z.string(),
   note: z.string(),
   count: z.number().int().nonnegative(),
   data_types: z.array(z.object({
     slug: z.string(),
+    name: z.string(),
+    kind: z.string(),
     supports: z.array(z.enum(["list", "reconcile", "rollup"])),
+    official_operations: z.array(z.string()),
     unit: z.string(),
     scope: z.string()
   }).strict())
 }).strict();
+
+export const CoverageOutputSchema = z.object({
+  kind: z.literal("data_type_coverage"),
+  mode: z.enum(["plan", "live"])
+}).passthrough();
 
 export const SummaryOutputSchema = z.object({
   kind: z.enum(["daily_summary", "weekly_summary"]),

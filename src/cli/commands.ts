@@ -4,6 +4,9 @@ import { SERVER_VERSION } from "../constants.js";
 import { parseAgentClientName } from "../services/agent-manifest.js";
 import { fixLocalSetup } from "../services/local-fixes.js";
 import { runLiveCheck, type LiveCheckResult } from "../services/live-check.js";
+import { buildDataTypeCoveragePlan, buildLiveDataTypeCoverage, formatCoverageMarkdown } from "../services/coverage-report.js";
+import { getConfig } from "../services/config.js";
+import { GoogleHealthClient } from "../services/google-health-client.js";
 import {
   buildProfileSummary,
   getOnboardingFlow,
@@ -18,7 +21,7 @@ import {
 import { runAuthCommand } from "./auth.js";
 import { runSetupCommand } from "./setup.js";
 
-const COMMANDS = ["setup", "doctor", "status", "support", "auth", "onboarding", "version", "help"] as const;
+const COMMANDS = ["setup", "doctor", "status", "support", "coverage", "auth", "onboarding", "version", "help"] as const;
 
 export async function runCliCommand(args: string[]): Promise<number | undefined> {
   const [command, ...rest] = args;
@@ -26,6 +29,7 @@ export async function runCliCommand(args: string[]): Promise<number | undefined>
   if (command === "setup") return runSetupCommand(rest);
   if (command === "doctor" || command === "status") return runDoctor(rest);
   if (command === "support") return runSupport(rest);
+  if (command === "coverage") return runCoverage(rest);
   if (command === "auth") return runAuthCommand(rest);
   if (command === "onboarding") return runOnboarding(rest);
   if (command === "version" || command === "--version" || command === "-v") {
@@ -117,6 +121,16 @@ async function runDoctor(args: string[]): Promise<number> {
   return options.strict && !status.ok ? 1 : 0;
 }
 
+async function runCoverage(args: string[]): Promise<number> {
+  const options = parseCoverageOptions(args);
+  const report = options.live
+    ? await buildLiveDataTypeCoverage(new GoogleHealthClient(getConfig()), options)
+    : buildDataTypeCoveragePlan(options);
+  if (options.json) console.log(JSON.stringify(report, null, 2));
+  else console.log(formatCoverageMarkdown(report));
+  return 0;
+}
+
 function printLiveCheck(liveCheck: LiveCheckResult): void {
   const ok = "✓";
   const fail = "✗";
@@ -183,6 +197,43 @@ function parseSupportOptions(args: string[]) {
     feedback: args.includes("--feedback"),
     homeDir: homeDir ?? homedir(),
     client
+  };
+}
+
+function parseCoverageOptions(args: string[]) {
+  const dataTypes: string[] = [];
+  let date: string | undefined;
+  let dataSourceFamily: string | undefined;
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--date") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) throw new Error("Missing value for --date.");
+      date = value;
+      index += 1;
+    } else if (arg === "--data-source-family") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) throw new Error("Missing value for --data-source-family.");
+      dataSourceFamily = value;
+      index += 1;
+    } else if (arg === "--data-type") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) throw new Error("Missing value for --data-type.");
+      dataTypes.push(value);
+      index += 1;
+    } else if (arg === "--data-types") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) throw new Error("Missing value for --data-types.");
+      dataTypes.push(...value.split(",").map((item) => item.trim()).filter(Boolean));
+      index += 1;
+    }
+  }
+  return {
+    live: args.includes("--live"),
+    json: args.includes("--json"),
+    date,
+    dataSourceFamily,
+    dataTypes: dataTypes.length ? dataTypes : undefined
   };
 }
 
@@ -330,6 +381,10 @@ Usage:
   google-health-mcp-server support --json  Print redacted support bundle as JSON
   google-health-mcp-server support --feedback --json
                                    Print anonymous setup feedback for beta issue #4
+  google-health-mcp-server coverage --json
+                                   Print static read-only data-type coverage plan for issue #3
+  google-health-mcp-server coverage --live --json
+                                   Run read-only live coverage checks after OAuth setup
   google-health-mcp-server auth            Authorize Google Health with local browser callback
   google-health-mcp-server auth --no-open  Print auth URL without opening browser
   google-health-mcp-server onboarding      Print the shared Delx Wellness onboarding flow as JSON (+ TTY summary on stderr)

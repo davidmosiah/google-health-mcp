@@ -9,6 +9,8 @@ import {
   CapabilitiesOutputSchema,
   ConnectionStatusInputSchema,
   ConnectionStatusOutputSchema,
+  CoverageInputSchema,
+  CoverageOutputSchema,
   DailyRollupInputSchema,
   DailySummaryInputSchema,
   DataInventoryOutputSchema,
@@ -32,6 +34,7 @@ import { buildPrivacyAudit } from "../services/audit.js";
 import { buildAgentManifest, formatAgentManifestMarkdown } from "../services/agent-manifest.js";
 import { buildCapabilities } from "../services/capabilities.js";
 import { buildConnectionStatus } from "../services/connection-status.js";
+import { buildDataTypeCoveragePlan, buildLiveDataTypeCoverage, formatCoverageMarkdown } from "../services/coverage-report.js";
 import { buildWellnessContext, formatWellnessContextMarkdown } from "../services/context.js";
 import { getConfig } from "../services/config.js";
 import { bulletList, formatDataPointsMarkdown, makeError, makeResponse } from "../services/format.js";
@@ -78,6 +81,20 @@ export function registerGoogleHealthTools(server: McpServer): void {
   }, async ({ response_format }) => {
     const catalog = buildDataTypeCatalog();
     return makeResponse(catalog, response_format, formatDataTypeCatalogMarkdown(catalog));
+  });
+
+  server.registerTool("google_health_data_type_coverage", {
+    title: "Google Health Data Type Coverage",
+    description: "Build a data-type coverage plan from the official Google Health API data-type table, or run explicit live read-only checks against a real OAuth account. Live mode returns only redacted status and point-count buckets, never raw health payloads.",
+    inputSchema: CoverageInputSchema.shape,
+    outputSchema: CoverageOutputSchema,
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  }, async ({ live, date, data_source_family, data_types, response_format }) => {
+    const options = { date, dataSourceFamily: data_source_family, dataTypes: data_types };
+    const report = live
+      ? await buildLiveDataTypeCoverage(client(), options)
+      : buildDataTypeCoveragePlan(options);
+    return makeResponse(report, response_format, formatCoverageMarkdown(report));
   });
 
   server.registerTool("google_health_agent_manifest", {

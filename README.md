@@ -92,6 +92,7 @@ Start here:
 
 - `google_health_connection_status` — local config, token, scope and client readiness
 - `google_health_data_inventory` — supported domains, scopes, data type naming and agent flow
+- `google_health_data_type_coverage` — static coverage plan, or explicit live read-only validation for issue #3
 - `google_health_daily_summary` — daily beta summary from rollups and reconciled streams
 - `google_health_weekly_summary` — weekly beta review
 - `google_health_privacy_audit` — what is stored locally and what is sent to Google
@@ -106,6 +107,7 @@ The full tool catalog — Google Health API methods, agent manifest, diagnostics
 - `GOOGLE_HEALTH_PRIVACY_MODE=structured` is the default; `raw` mode is explicit and should be used only for debugging or deep analysis.
 - `support --redacted` prints a copy-paste support bundle for GitHub issues without tokens, secrets, local paths or health measurements.
 - `support --feedback --json` prints an anonymous setup-feedback bundle for beta testers and MCP client reports.
+- `coverage --live --json` prints only redacted data-type status and point-count buckets; it never includes raw Google Health payloads.
 
 ## See the full agent demo →
 
@@ -125,6 +127,8 @@ If you can test with a real account:
 
 - Run `npx -y google-health-mcp-unofficial doctor` and confirm the OAuth flow is clear.
 - Run `npx -y google-health-mcp-unofficial support --feedback --json` and paste the anonymous bundle into issue #4.
+- Run `npx -y google-health-mcp-unofficial coverage --json` for the static issue #3 plan.
+- After OAuth, run `npx -y google-health-mcp-unofficial coverage --live --json` and paste the reviewed, redacted report into issue #3.
 - Try `google_health_connection_status`, `google_health_data_inventory` and `google_health_daily_summary` from your MCP client.
 - Open an issue for missing data types, confusing setup steps, client-specific friction or privacy concerns.
 - Do **not** paste OAuth tokens, client secrets, local paths or personal health measurements into public issues.
@@ -135,6 +139,7 @@ Useful links:
 - [Data coverage validation](https://github.com/davidmosiah/google-health-mcp/issues/3)
 - [MCP client setup feedback](https://github.com/davidmosiah/google-health-mcp/issues/4)
 - [Beta feedback guide](docs/beta-feedback.md)
+- [Data coverage harness](docs/data-coverage.md)
 - [Anonymous setup feedback](docs/setup-feedback.md)
 - [Demo](docs/demo.md)
 - [Discovery kit](docs/discovery.md)
@@ -162,6 +167,7 @@ If setup gets stuck:
 ```bash
 npx -y google-health-mcp-unofficial doctor --fix       # repairs local config/token permissions (chmod 600 where supported)
 npx -y google-health-mcp-unofficial doctor --live      # calls safe identity/profile/settings endpoints to prove the API is reachable
+npx -y google-health-mcp-unofficial coverage --live --json # redacted read-only data-type coverage for issue #3
 npx -y google-health-mcp-unofficial support --redacted # copy-paste support bundle, no tokens/secrets/measurements
 npx -y google-health-mcp-unofficial support --feedback --json # anonymous setup feedback for issue #4
 ```

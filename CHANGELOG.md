@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.1 - 2026-06-27
+
+### Added
+
+- Expand `GOOGLE_HEALTH_DATA_TYPES` to a 39-type snapshot from the official
+  Google Health API data-type table, including official operation names, type
+  kind and scope family.
+- Add `google_health_data_type_coverage`, a read-only MCP tool that returns a
+  static issue #3 validation plan by default and can run explicit live
+  list/reconcile/daily-rollup checks after OAuth.
+- Add `google-health-mcp-server coverage --json` and
+  `google-health-mcp-server coverage --live --json` for safe CLI coverage
+  reports.
+- Add `docs/data-coverage.md` plus README, beta-guide, tool-catalog and LLM
+  documentation for the coverage workflow.
+
+### Security
+
+- Live coverage reports include only operation status and point-count buckets;
+  tests assert that OAuth secrets, local paths and example health values do not
+  leak into the report.
+
 ## 0.5.0 - 2026-06-27
 
 ### Added

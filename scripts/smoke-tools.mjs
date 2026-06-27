@@ -4,6 +4,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 const expectedTools = [
   'google_health_agent_manifest', 'google_health_cache_status', 'google_health_capabilities', 'google_health_connection_status',
+  'google_health_data_type_coverage',
   'google_health_daily_rollup', 'google_health_daily_summary', 'google_health_data_inventory', 'google_health_demo',
   'google_health_exchange_code', 'google_health_get_auth_url', 'google_health_get_identity', 'google_health_get_profile',
   'google_health_get_settings', 'google_health_list_data_points', 'google_health_list_data_types', 'google_health_onboarding',
@@ -49,6 +50,11 @@ try {
   const inventoryResult = await client.callTool({ name: 'google_health_data_inventory', arguments: { response_format: 'json' } });
   assert.equal(inventoryResult.structuredContent?.kind, 'data_inventory');
   assert.equal(typeof inventoryResult.structuredContent?.source, 'string');
+
+  const coverageResult = await client.callTool({ name: 'google_health_data_type_coverage', arguments: { response_format: 'json' } });
+  assert.equal(coverageResult.structuredContent?.kind, 'data_type_coverage');
+  assert.equal(coverageResult.structuredContent?.mode, 'plan');
+  assert.ok(coverageResult.structuredContent?.totals?.data_types >= 30);
 
   const manifestResult = await client.callTool({ name: 'google_health_agent_manifest', arguments: { client: 'hermes', response_format: 'json' } });
   assert.equal(manifestResult.structuredContent?.client, 'hermes');

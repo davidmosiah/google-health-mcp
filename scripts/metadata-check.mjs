@@ -16,6 +16,7 @@ requireFile('llms.txt');
 requireFile('server.json');
 requireFile('glama.json');
 requireFile('docs/setup-feedback.md');
+requireFile('docs/data-coverage.md');
 
 if (serverJson.version !== packageJson.version) {
   errors.push(`server.json version ${serverJson.version} does not match package.json version ${packageJson.version}`);
@@ -43,10 +44,17 @@ const readme = readFileSync('README.md', 'utf8');
 if (!readme.includes('support --feedback --json')) {
   errors.push('README.md must document anonymous setup feedback.');
 }
+if (!readme.includes('coverage --live --json')) {
+  errors.push('README.md must document live data coverage.');
+}
 
 const setupFeedbackDoc = readFileSync('docs/setup-feedback.md', 'utf8');
 if (!setupFeedbackDoc.includes('support --feedback --json')) {
   errors.push('docs/setup-feedback.md must document the support --feedback command.');
+}
+const dataCoverageDoc = readFileSync('docs/data-coverage.md', 'utf8');
+if (!dataCoverageDoc.includes('coverage --live --json')) {
+  errors.push('docs/data-coverage.md must document live data coverage.');
 }
 
 if (errors.length) {

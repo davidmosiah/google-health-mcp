@@ -17,6 +17,8 @@ npx -y google-health-mcp-unofficial setup --scope-preset full
 npx -y google-health-mcp-unofficial auth
 npx -y google-health-mcp-unofficial doctor
 npx -y google-health-mcp-unofficial doctor --live
+npx -y google-health-mcp-unofficial coverage --json
+npx -y google-health-mcp-unofficial coverage --live --json
 npx -y google-health-mcp-unofficial support --redacted
 npx -y google-health-mcp-unofficial support --feedback --json
 ```
@@ -42,6 +44,10 @@ For setup feedback:
 
 For data coverage:
 
+- Start with `coverage --json` to see the static plan captured from the
+  official data type table.
+- After OAuth, run `coverage --live --json` for a redacted read-only report.
+  It returns operation status and point-count buckets, not raw health payloads.
 - Data type tested, for example `steps`, `sleep`, `heart-rate`,
   `daily-heart-rate-variability`, `active-zone-minutes`, `weight`, `body-fat`,
   `exercise` or `nutrition`.

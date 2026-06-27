@@ -10,6 +10,7 @@ MCP command: google-health-mcp-server
 - Status: beta while Google Health API v4 evolves; check official release notes because scopes and data types can change.
 - Current beta ask: testers with Fitbit, Pixel Watch, Android and Google Health API access should report setup friction and data type gaps.
 - For beta setup reports, run google-health-mcp-server support --feedback --json and paste the anonymous bundle into issue #4.
+- For data coverage reports, run google-health-mcp-server coverage --json for a static plan, then google-health-mcp-server coverage --live --json after OAuth. Live coverage is read-only and redacted.
 - Start agents with google_health_connection_status and google_health_data_inventory.
 - Read-only default tools: identity, profile, settings, list data points, reconcile, dailyRollUp, rollUp, daily summary, weekly summary.
 - OAuth env: GOOGLE_HEALTH_CLIENT_ID, GOOGLE_HEALTH_CLIENT_SECRET, GOOGLE_HEALTH_REDIRECT_URI.
