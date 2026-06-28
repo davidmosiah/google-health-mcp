@@ -160,12 +160,12 @@ async function collectSleepNights(
   const out: SleepNight[] = [];
   let pageToken: string | undefined;
   for (let page = 0; page < SLEEP_MAX_PAGES; page++) {
-    let payload: unknown;
-    try {
-      payload = await client.listDataPoints({ dataType: "sleep", pageSize: SLEEP_PAGE_SIZE, pageToken });
-    } catch {
-      break;
-    }
+    // Do NOT swallow fetch errors here. listDataPoints already retries transient
+    // failures internally (fetchWithRetry), so anything that surfaces is a real
+    // failure — expired/invalid auth, persistent network, or an API error. Letting
+    // it propagate makes the tool return a proper error; swallowing it would mask a
+    // dead token as a misleading empty "0 nights" result.
+    const payload = await client.listDataPoints({ dataType: "sleep", pageSize: SLEEP_PAGE_SIZE, pageToken });
     const nights = fromSleepDataPoints(payload);
     let passedRange = false;
     for (const night of nights) {

@@ -32,7 +32,7 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "smoke": "node scripts/smoke-tools.mjs",
-    "test": "npm run typecheck && npm run build && npm run smoke && npm run smoke:http && npm run test:summary && npm run test:privacy-cache && npm run test:http-retry && npm run test:http-cache && npm run test:cli-ux && npm run test:agent-readiness && npm run test:hermes-agent && npm run test:metadata && npm run test:write-gate && npm run test:nutrition-normalize && npm run test:v4-nutrition && npm run test:sleep-normalize && npm run test:sleep-engine && npm run test:sleep",
+    "test": "npm run typecheck && npm run build && npm run smoke && npm run smoke:http && npm run test:summary && npm run test:privacy-cache && npm run test:http-retry && npm run test:http-cache && npm run test:cli-ux && npm run test:agent-readiness && npm run test:hermes-agent && npm run test:metadata && npm run test:write-gate && npm run test:nutrition-normalize && npm run test:v4-nutrition && npm run test:sleep-normalize && npm run test:sleep-engine && npm run test:sleep && npm run test:sleep-error",
     "test:summary": "node scripts/summary-fixture-test.mjs",
     "prepublishOnly": "npm test",
     "smoke:http": "node scripts/smoke-http.mjs",
@@ -49,6 +49,7 @@
     "test:sleep-normalize": "node scripts/sleep-normalize-test.mjs",
     "test:sleep-engine": "node scripts/sleep-engine-test.mjs",
     "test:sleep": "node scripts/sleep-fixture-test.mjs",
+    "test:sleep-error": "node scripts/sleep-error-test.mjs",
     "charts": "node scripts/charts/build-charts.mjs"
   },
   "keywords": [
