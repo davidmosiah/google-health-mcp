@@ -14,6 +14,7 @@
   <a href="https://www.npmjs.com/package/google-health-mcp-unofficial"><img src="https://img.shields.io/npm/v/google-health-mcp-unofficial?style=for-the-badge&labelColor=0F172A&color=10B981&logo=npm&logoColor=white" alt="npm version" /></a>
   <a href="https://github.com/davidmosiah/google-health-mcp/releases/latest"><img src="https://img.shields.io/github/v/release/davidmosiah/google-health-mcp?style=for-the-badge&labelColor=0F172A&color=2563EB&logo=github" alt="GitHub release" /></a>
   <a href="https://www.npmjs.com/package/google-health-mcp-unofficial"><img src="https://img.shields.io/npm/dm/google-health-mcp-unofficial?style=for-the-badge&labelColor=0F172A&color=0EA5A3&logo=npm&logoColor=white" alt="npm downloads" /></a>
+  <a href="https://github.com/davidmosiah/google-health-mcp/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/davidmosiah/google-health-mcp/ci.yml?branch=main&style=for-the-badge&labelColor=0F172A&label=CI" alt="CI" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/LICENSE-MIT-22C55E?style=for-the-badge&labelColor=0F172A" alt="License MIT" /></a>
   <a href="https://wellness.delx.ai/connectors/google-health"><img src="https://img.shields.io/badge/SITE-wellness.delx.ai-0EA5A3?style=for-the-badge&labelColor=0F172A" alt="Site" /></a>
 </p>
@@ -30,6 +31,8 @@
 > `npx -y delx-wellness-hermes setup` &mdash; preconfigures this connector and the other 8 in a dedicated Hermes profile.
 >
 > Or wire it standalone into Claude Desktop / Cursor / ChatGPT Desktop &mdash; see the install section below.
+
+> **What's new in 0.5.2 (2026-07-12):** scorecard field fixes for Google Health v4 (`kcalSum`, AZM zones, weight grams→kg), Smithery install config, and current evolving-API beta notice. Full notes in [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -208,6 +211,7 @@ npm test
 
 ## Links
 
+- [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 - Google Health API: https://developers.google.com/health
 - Release notes: https://developers.google.com/health/release-notes
 - REST reference: https://developers.google.com/health/reference/rest

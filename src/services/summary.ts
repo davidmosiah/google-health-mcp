@@ -287,7 +287,7 @@ export async function buildWeeklySummary(client: Pick<GoogleHealthClient, "daily
     },
     safety: {
       medical_advice: false,
-      beta_notice: "Google Health API v4 may change before the end-of-May 2026 stabilization window."
+      beta_notice: "Google Health API v4 is new and still evolving; check the official release notes before stable public launches because scopes and data types can change."
     }
   };
 }

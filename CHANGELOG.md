@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.2 - 2026-07-12
+
+### Fixed
+
+- Correct Google Health v4 scorecard / summary field mapping: accept `kcalSum`
+  for calories, sum AZM minutes across heart-rate zones, and convert
+  `weightGramsAvg` to kilograms when present.
+- Harden error-envelope handling for Google Health v4 responses so agent-facing
+  failures stay actionable instead of opaque.
+
+### Added
+
+- Ship `smithery.yaml` so the connector can be discovered and installed via
+  Smithery.
+
+### Changed
+
+- Replace stale “end-of-May 2026 stabilization window” copy in summary and
+  privacy-audit surfaces with the current evolving-API notice aligned to
+  `GOOGLE_HEALTH_BETA_NOTICE`.
+
 ## 0.5.1 - 2026-06-27
 
 ### Added

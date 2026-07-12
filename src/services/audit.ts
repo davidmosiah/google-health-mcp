@@ -37,7 +37,7 @@ export function buildPrivacyAudit(): Record<string, unknown> {
     redacted_key_patterns: REDACTED_KEY_PATTERNS,
     notes: [
       "This is an unofficial Google Health integration.",
-      "Google Health API v4 is new; public launch should be treated as beta until Google's end-of-May 2026 stabilization window passes.",
+      "Google Health API v4 is new and still evolving; check the official release notes before stable public launches because scopes and data types can change.",
       "OAuth tokens are stored locally and are not returned by tools.",
       "Raw Google Health payloads require GOOGLE_HEALTH_PRIVACY_MODE=raw or privacy_mode=raw.",
       "Sensitive profile and token fields are removed or minimized unless raw mode is explicitly requested.",
