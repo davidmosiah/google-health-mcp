@@ -34,6 +34,22 @@
 
 > **What's new in 0.5.2 (2026-07-12):** scorecard field fixes for Google Health v4 (`kcalSum`, AZM zones, weight grams→kg), Smithery install config, and current evolving-API beta notice. Full notes in [CHANGELOG.md](CHANGELOG.md).
 
+## Current OSS proof loop — real accounts wanted
+
+Through **August 12, 2026**, the highest-leverage contribution is a redacted
+coverage report from a real Fitbit, Pixel Watch, Android or Google Health API v4
+account:
+
+```bash
+npx -y google-health-mcp-unofficial coverage --live --json
+```
+
+Review the output, remove anything you do not want public, then post the report
+to [issue #3](https://github.com/davidmosiah/google-health-mcp/issues/3). The
+command is read-only and is designed to omit OAuth secrets, local paths and raw
+health measurements. A static preflight is available before OAuth with
+`coverage --json`.
+
 ---
 
 <!-- /delx-wellness header v2 -->
