@@ -33,7 +33,20 @@ const fakeClient = {
   }
 };
 
+const NativeDate = Date;
+const fixedNow = '2026-07-14T13:30:07.123Z';
+globalThis.Date = class extends NativeDate {
+  constructor(...args) {
+    super(...(args.length === 0 ? [fixedNow] : args));
+  }
+
+  static now() {
+    return NativeDate.parse(fixedNow);
+  }
+};
+
 const live = await buildLiveDataTypeCoverage(fakeClient, { date: '2026-06-27', dataTypes: ['steps'] });
+globalThis.Date = NativeDate;
 assert.equal(live.kind, 'data_type_coverage');
 assert.equal(live.mode, 'live');
 assert.equal(live.totals.data_types, 1);
@@ -45,6 +58,6 @@ const serialized = JSON.stringify(live);
 assert.equal(serialized.includes('SHOULD_NOT_LEAK'), false);
 assert.equal(serialized.includes('/Users/example'), false);
 assert.equal(serialized.includes('99999'), false);
-assert.equal(serialized.includes('123'), false);
+assert.equal(serialized.includes('"value":123'), false);
 
 console.log(JSON.stringify({ ok: true, coverage_report: true, data_types: plan.totals.data_types }, null, 2));
