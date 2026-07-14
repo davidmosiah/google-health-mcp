@@ -2,6 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://wellness.delx.ai/connectors/google-health</loc></url>
   <url><loc>https://github.com/davidmosiah/google-health-mcp</loc></url>
+  <url><loc>https://github.com/davidmosiah/google-health-mcp/blob/main/docs/authorization.md</loc></url>
   <url><loc>https://github.com/davidmosiah/google-health-mcp/blob/main/docs/quickstart.md</loc></url>
   <url><loc>https://github.com/davidmosiah/google-health-mcp/blob/main/docs/data-coverage.md</loc></url>
   <url><loc>https://github.com/davidmosiah/google-health-mcp/blob/main/docs/setup-feedback.md</loc></url>

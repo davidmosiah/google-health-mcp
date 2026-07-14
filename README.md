@@ -128,6 +128,19 @@ The full tool catalog — Google Health API methods, agent manifest, diagnostics
 - `support --feedback --json` prints an anonymous setup-feedback bundle for beta testers and MCP client reports.
 - `coverage --live --json` prints only redacted data-type status and point-count buckets; it never includes raw Google Health payloads.
 
+## Authorization model & trust boundary
+
+Google OAuth controls which Google account and health scopes this connector can
+access. It does **not** authorize individual MCP callers or tools. The intended
+deployment is one local user running one trusted MCP host; callers that can
+reach the same process share its tool catalog and local OAuth grant.
+
+There is currently no per-user, per-agent, API-key or per-tool RBAC layer. The
+optional HTTP transport binds to `127.0.0.1` by default and must not be exposed
+publicly without standards-compliant MCP authentication, isolated per-user
+Google credentials and an explicit authorization policy. See the full
+[authorization model](docs/authorization.md).
+
 ## See the full agent demo →
 
 Want to see an agent actually reason over this connector alongside the rest of the stack? The shared, reproducible demo answers the anchor question **"Should I train hard today?"**:
@@ -227,7 +240,7 @@ npm test
 
 ## Links
 
-- [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+- [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Authorization model](docs/authorization.md)
 - Google Health API: https://developers.google.com/health
 - Release notes: https://developers.google.com/health/release-notes
 - REST reference: https://developers.google.com/health/reference/rest

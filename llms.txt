@@ -15,4 +15,5 @@ MCP command: google-health-mcp-server
 - Read-only default tools: identity, profile, settings, list data points, reconcile, dailyRollUp, rollUp, daily summary, weekly summary.
 - OAuth env: GOOGLE_HEALTH_CLIENT_ID, GOOGLE_HEALTH_CLIENT_SECRET, GOOGLE_HEALTH_REDIRECT_URI.
 - Tokens stay local under ~/.google-health-mcp/tokens.json and should never be printed.
+- Authorization boundary: Google OAuth scopes protect upstream data; the local MCP process does not provide per-user, per-agent, API-key or per-tool RBAC. Do not expose HTTP publicly without an authenticated gateway and isolated per-user Google credentials. Details: https://github.com/davidmosiah/google-health-mcp/blob/main/docs/authorization.md
 - Not medical advice. Use as trend context only.
