@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.3 - 2026-07-16
+
+### Fixed
+
+- Validate real calendar dates and exclusive daily-rollup ranges before HTTP, preventing impossible or reversed civil dates from reaching Google Health v4.
+- Validate timezone-aware rollup date-times and reject invalid or reversed instant ranges while preserving the caller's exact ISO values upstream.
+- Log redacted per-domain errors from partial summaries to stderr instead of silently hiding failed Google Health domains.
+- Add an executable HTTP-boundary regression suite and structured-output forward-compatibility checks.
+
 ## 0.5.2 - 2026-07-12
 
 ### Fixed

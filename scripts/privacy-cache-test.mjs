@@ -17,6 +17,13 @@ const dataPoint = {
 const structured = applyPrivacy('/v4/users/me/dataTypes/steps/dataPoints', dataPoint, 'structured');
 assert.equal(structured.name, 'users/123/dataTypes/steps/dataPoints/abc');
 assert.equal(structured.access_token, undefined);
+assert.deepEqual(structured.steps, dataPoint.steps);
+
+const futureStructured = applyPrivacy('/v4/users/me/dataTypes/steps/dataPoints', {
+  ...dataPoint,
+  futureMetrics: { gaitSymmetry: 97 },
+}, 'structured');
+assert.deepEqual(futureStructured.futureMetrics, { gaitSymmetry: 97 });
 
 const summary = applyPrivacy('/v4/users/me/dataTypes/steps/dataPoints', dataPoint, 'summary');
 assert.equal(summary.data_type, 'steps');

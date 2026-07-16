@@ -130,6 +130,7 @@ export class GoogleHealthClient {
   }
 
   async rollup(query: RollupQuery): Promise<unknown> {
+    validateTimestampRange(query.startTime, query.endTime);
     return this.post(`/v4/users/me/dataTypes/${encodeDataType(query.dataType)}/dataPoints:rollUp`, {
       range: { startTime: query.startTime, endTime: query.endTime },
       windowSize: query.windowSize,
@@ -343,9 +344,14 @@ function normalizePageSize(value?: number): number | undefined {
 }
 
 function civilDateRange(startDate: string, endDate: string) {
+  const start = normalizeDate(startDate);
+  const end = normalizeDate(endDate);
+  if (start >= end) {
+    throw new Error("Google Health start date must be earlier than end date");
+  }
   return {
-    start: civilDateTime(startDate, 0, 0, 0),
-    end: civilDateTime(endDate, 0, 0, 0)
+    start: civilDateTime(start, 0, 0, 0),
+    end: civilDateTime(end, 0, 0, 0)
   };
 }
 
@@ -359,8 +365,26 @@ function civilDateTime(date: string, hours: number, minutes: number, seconds: nu
 
 function normalizeDate(value: string): string {
   if (value === "today") return new Date().toISOString().slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`Expected date as YYYY-MM-DD, received ${value}`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`Invalid Google Health date: expected YYYY-MM-DD, received ${value}`);
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new Error(`Invalid Google Health date: ${value}`);
+  }
   return value;
+}
+
+function validateTimestampRange(startTime: string, endTime: string): void {
+  const start = validateTimestamp(startTime, "start");
+  const end = validateTimestamp(endTime, "end");
+  if (start >= end) throw new Error("Google Health start time must be earlier than end time");
+}
+
+function validateTimestamp(value: string, field: "start" | "end"): number {
+  const parsed = Date.parse(value);
+  if (!/(?:Z|[+-]\d{2}:\d{2})$/i.test(value) || !Number.isFinite(parsed)) {
+    throw new Error(`Invalid Google Health ${field} date-time: use ISO 8601 with a timezone`);
+  }
+  return parsed;
 }
 
 function nextDate(value: string): string {

@@ -47,4 +47,24 @@ assert.equal(context.source, 'google_health');
 assert.equal(context.sleep_hours, 7.17);
 assert.equal(context.recent_training_load, 'normal');
 
+let capturedStderr = '';
+const originalStderrWrite = process.stderr.write.bind(process.stderr);
+process.stderr.write = (chunk) => {
+  capturedStderr += String(chunk);
+  return true;
+};
+try {
+  const partialClient = {
+    ...fakeClient,
+    async reconcileDataPoints(query) {
+      if (query.dataType === 'sleep') throw new Error('synthetic Google Health sleep failure');
+      return fakeClient.reconcileDataPoints(query);
+    },
+  };
+  await buildDailySummary(partialClient, { date: 'today', timezone: 'UTC' });
+} finally {
+  process.stderr.write = originalStderrWrite;
+}
+assert.match(capturedStderr, /\[google-health-mcp\] summary domain error: synthetic Google Health sleep failure/);
+
 console.log(JSON.stringify({ ok: true, daily: daily.kind, weekly: weekly.kind }, null, 2));

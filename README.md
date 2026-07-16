@@ -32,7 +32,7 @@
 >
 > Or wire it standalone into Claude Desktop / Cursor / ChatGPT Desktop &mdash; see the install section below.
 
-> **What's new in 0.5.2 (2026-07-12):** scorecard field fixes for Google Health v4 (`kcalSum`, AZM zones, weight grams→kg), Smithery install config, and current evolving-API beta notice. Full notes in [CHANGELOG.md](CHANGELOG.md).
+> **What's new in 0.5.3 (2026-07-16):** endpoint-specific civil-date and date-time validation, visible partial-summary failures, and executable boundary contracts. Full notes in [CHANGELOG.md](CHANGELOG.md).
 
 ## Current OSS proof loop — real accounts wanted
 
@@ -124,6 +124,8 @@ The full tool catalog — Google Health API methods, agent manifest, diagnostics
 - Secrets can live in `~/.google-health-mcp/config.json` or `GOOGLE_HEALTH_*` environment variables.
 - Tools never return access tokens, refresh tokens or client secrets.
 - `GOOGLE_HEALTH_PRIVACY_MODE=structured` is the default; `raw` mode is explicit and should be used only for debugging or deep analysis.
+- Structured mode preserves complete upstream physiological fields and future v4 additions while removing identity, GPS and secret-bearing values.
+- Daily rollups use validated civil `YYYY-MM-DD` ranges; general rollups preserve exact timezone-aware ISO date-times. Invalid or reversed ranges fail before HTTP.
 - `support --redacted` prints a copy-paste support bundle for GitHub issues without tokens, secrets, local paths or health measurements.
 - `support --feedback --json` prints an anonymous setup-feedback bundle for beta testers and MCP client reports.
 - `coverage --live --json` prints only redacted data-type status and point-count buckets; it never includes raw Google Health payloads.

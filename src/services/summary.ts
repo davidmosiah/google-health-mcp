@@ -1,4 +1,5 @@
 import type { GoogleHealthClient } from "./google-health-client.js";
+import { redactErrorMessage } from "./redaction.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -37,7 +38,9 @@ async function safe<T>(fn: () => Promise<T>, endpoint: string): Promise<T | { er
   try {
     return await fn();
   } catch (error) {
-    return { error: (error as Error).message, endpoint };
+    const message = redactErrorMessage(error instanceof Error ? error.message : String(error));
+    process.stderr.write(`[google-health-mcp] summary domain error: ${message}\n`);
+    return { error: message, endpoint };
   }
 }
 
