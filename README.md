@@ -196,6 +196,42 @@ npx -y google-health-mcp-unofficial doctor
 
 Scope presets keep OAuth consent easier to reason about — `basic`, `activity`, `sleep` and `full`. The full preset list, the exact read-only scope URLs and the OAuth endpoints live in [docs/oauth.md](docs/oauth.md).
 
+### Headless hosts (servers, SSH, containers, WSL)
+
+`auth` normally opens a browser and catches the redirect on `127.0.0.1`. On a host with no
+browser that cannot work: there is nothing to open, and the redirect would land on the
+*browser's* loopback interface, not the server's.
+
+When it detects a headless host — running over SSH, or no `DISPLAY`/`WAYLAND_DISPLAY` — `auth`
+switches to pasting the redirect back in. Force it with `--manual`:
+
+```bash
+npx -y google-health-mcp-unofficial auth --manual
+```
+
+1. Open the printed URL on any device with a browser.
+2. Approve access.
+3. The browser lands on `http://127.0.0.1:3000/callback?...` and shows a connection error.
+   That is expected — nothing is listening on *that* device.
+4. Copy the full URL out of the address bar and paste it back into the terminal.
+
+For scripts and provisioning, skip the prompt entirely:
+
+```bash
+npx -y google-health-mcp-unofficial auth --print-url                  # just the URL
+npx -y google-health-mcp-unofficial auth --code "http://127.0.0.1:3000/callback?code=..."
+```
+
+Prefer the browser flow? Forward the callback port and keep it:
+
+```bash
+ssh -L 3000:127.0.0.1:3000 <this-host>
+npx -y google-health-mcp-unofficial auth --local-callback --no-open
+```
+
+Detection can be overridden with `GOOGLE_HEALTH_HEADLESS=1` (force manual) or
+`GOOGLE_HEALTH_HEADLESS=0` (force the browser flow). `doctor` reports what it detected.
+
 If setup gets stuck:
 
 ```bash

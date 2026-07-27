@@ -254,6 +254,7 @@ function safeDoctorStatus(status: Awaited<ReturnType<typeof buildConnectionStatu
     required_env: raw.required_env,
     missing_env: raw.missing_env,
     automatic_auth_supported: Boolean(raw.automatic_auth_supported),
+    headless: raw.headless,
     privacy_mode: raw.privacy_mode,
     config: raw.config ? {
       exists: Boolean(raw.config.exists),
@@ -337,6 +338,7 @@ function printDoctor(status: Awaited<ReturnType<typeof buildConnectionStatus>>):
   line(check(status.missing_env.length === 0), "Env vars", status.missing_env.length ? `missing: ${status.missing_env.join(", ")}` : undefined);
   line(check(status.config.exists), "Local config", status.config.exists ? status.config.source : "missing");
   line(check(status.automatic_auth_supported), "Automatic auth redirect", status.automatic_auth_supported ? undefined : "not configured for local callback");
+  if (status.headless?.detected) line(info, "Headless host", status.headless.reason);
   line(check(status.token.exists), "Token file", status.token.exists ? "present" : "missing");
   if (status.token.exists) {
     line(status.token.secure_permissions === false ? fail : ok, "Token permissions", status.token.secure_permissions === false ? "insecure (chmod 600)" : undefined);
@@ -390,6 +392,15 @@ Usage:
                                    Run read-only live coverage checks after OAuth setup
   google-health-mcp-server auth            Authorize Google Health with local browser callback
   google-health-mcp-server auth --no-open  Print auth URL without opening browser
+  google-health-mcp-server auth --manual   Headless auth: print the URL, paste the redirect back
+                                   (auto-selected over SSH or with no DISPLAY)
+  google-health-mcp-server auth --local-callback
+                                   Force the local callback flow on a headless host
+                                   (pair with: ssh -L 3000:127.0.0.1:3000 <host>)
+  google-health-mcp-server auth --code "<redirect-url>"
+                                   Non-interactive: exchange a code you already have
+  google-health-mcp-server auth --print-url
+                                   Print only the authorization URL and exit
   google-health-mcp-server onboarding      Print the shared Delx Wellness onboarding flow as JSON (+ TTY summary on stderr)
   google-health-mcp-server onboarding --pt-BR  Onboarding flow in Brazilian Portuguese
 

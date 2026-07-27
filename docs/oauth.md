@@ -14,6 +14,35 @@ http://127.0.0.1:3000/callback
 
 Tokens are saved at `~/.google-health-mcp/tokens.json` with user-only permissions.
 
+## Auth Flows
+
+`auth` picks a flow based on the host:
+
+| Flow | When | What happens |
+| --- | --- | --- |
+| Local callback | Desktop with a browser | Opens the browser, catches the redirect on `127.0.0.1` |
+| Manual paste | Headless host (auto-detected or `--manual`) | Prints the URL; you paste the redirect back |
+| Non-interactive | `--code "<redirect-url-or-code>"` | Exchanges a code you already obtained |
+
+Headless detection uses, in order: `GOOGLE_HEALTH_HEADLESS` (`1`/`0` forces either flow),
+`SSH_CONNECTION`/`SSH_TTY`/`SSH_CLIENT`, platform, then `DISPLAY`/`WAYLAND_DISPLAY`.
+`doctor` reports the result under `headless`.
+
+Manual paste accepts either the full redirect URL or a bare `code` value. The full URL is
+preferred — it carries `scope`, so `doctor` can report granted scopes without another call.
+The `state` parameter is verified when present.
+
+Flags:
+
+- `--manual` (aliases `--headless`, `--no-browser`) — force the paste flow
+- `--local-callback` — force the callback flow on a headless host, e.g. behind
+  `ssh -L 3000:127.0.0.1:3000 <host>`
+- `--no-open` — keep the callback flow but do not launch a browser
+- `--print-url` — print only the authorization URL and exit
+- `--code <redirect-url-or-code>` — exchange without prompting
+
+`setup` forwards `--manual` and `--local-callback` to the `auth` step it runs.
+
 ## Scope Presets
 
 Use `setup --scope-preset <name>` to choose the smallest useful read-only scope set:

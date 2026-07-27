@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Headless OAuth: `auth --manual` prints the authorization URL and accepts the
+  redirect URL (or bare code) pasted back in, so servers, SSH sessions,
+  containers and WSL can authorize without a local browser. Selected
+  automatically over SSH or when `DISPLAY`/`WAYLAND_DISPLAY` are unset, and
+  overridable with `GOOGLE_HEALTH_HEADLESS`.
+- `auth --code "<redirect-url-or-code>"` for non-interactive provisioning, and
+  `auth --print-url` to emit only the authorization URL.
+- `auth --local-callback` to force the browser/callback flow on a headless host
+  reached through an SSH tunnel, with the required `ssh -L` hint printed inline.
+- `setup` forwards `--manual` and `--local-callback` to its `auth` step.
+- `doctor` reports detected headless status and recommends `auth --manual`
+  instead of `auth` when appropriate.
+
+### Fixed
+
+- A missing `xdg-open`/`open` binary no longer crashes `auth` with an uncaught
+  `ENOENT` while the callback server is still waiting.
+- The authorization URL is now always printed in the callback flow, not only
+  under `--no-open`, so a failed browser launch stays recoverable by hand.
+- The local callback flow records granted OAuth scopes, matching the manual
+  flow; previously only the bare code was exchanged and `scope` was dropped.
+
 ## 0.5.3 - 2026-07-16
 
 ### Fixed

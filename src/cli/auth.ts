@@ -1,8 +1,12 @@
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
+import { createInterface } from "node:readline";
 import { getConfig } from "../services/config.js";
 import { GoogleHealthClient } from "../services/google-health-client.js";
+import { detectHeadlessEnvironment, type HeadlessDetection } from "../services/headless.js";
+
+export { detectHeadlessEnvironment, type HeadlessDetection };
 
 export interface LocalRedirectPlan {
   host: string;
@@ -14,6 +18,15 @@ export interface BrowserOpenCommand {
   command: string;
   args: string[];
   env?: NodeJS.ProcessEnv;
+}
+
+export interface AuthOptions {
+  json: boolean;
+  noOpen: boolean;
+  manual: boolean;
+  localCallback: boolean;
+  printUrl: boolean;
+  code?: string;
 }
 
 export function parseLocalRedirectUri(value: string): LocalRedirectPlan {
@@ -29,38 +42,162 @@ export function parseLocalRedirectUri(value: string): LocalRedirectPlan {
   };
 }
 
+export function parseAuthOptions(args: string[]): AuthOptions {
+  let code: string | undefined;
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] === "--code") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) throw new Error("Missing value for --code.");
+      code = value;
+      index += 1;
+    }
+  }
+  return {
+    json: args.includes("--json"),
+    noOpen: args.includes("--no-open"),
+    manual: args.includes("--manual") || args.includes("--headless") || args.includes("--no-browser"),
+    localCallback: args.includes("--local-callback"),
+    printUrl: args.includes("--print-url"),
+    code
+  };
+}
+
+/**
+ * Accepts either the full redirect URL copied from the browser address bar or a
+ * bare authorization code. The full URL is preferred: it carries `scope`, which
+ * lets doctor report granted scopes without another round trip.
+ */
+export function parsePastedRedirect(input: string, expectedState?: string): string {
+  const value = input.trim().replace(/^["']|["']$/g, "");
+  if (!value) throw new Error("No authorization code provided.");
+
+  let url: URL | undefined;
+  try {
+    url = new URL(value);
+  } catch {
+    url = undefined;
+  }
+
+  if (!url) {
+    if (/\s/.test(value)) {
+      throw new Error("That does not look like an authorization code. Paste the full redirect URL, or just the value of its `code` parameter.");
+    }
+    return value;
+  }
+
+  const error = url.searchParams.get("error");
+  if (error) throw new Error(`Google Health authorization failed: ${error}`);
+  if (!url.searchParams.get("code")) {
+    throw new Error("That URL has no `code` parameter. Copy the whole redirect URL from the browser address bar, including everything after `?`.");
+  }
+  const state = url.searchParams.get("state");
+  if (expectedState && state && state !== expectedState) {
+    throw new Error("GOOGLE_HEALTH callback state mismatch. Re-run `google-health-mcp-server auth` and use the newest URL.");
+  }
+  return value;
+}
+
 export async function runAuthCommand(args: string[]): Promise<number> {
-  const noOpen = args.includes("--no-open");
-  const json = args.includes("--json");
+  const options = parseAuthOptions(args);
   const config = getConfig();
-  const redirect = parseLocalRedirectUri(config.redirectUri);
-  const state = randomBytes(4).toString("hex");
   const client = new GoogleHealthClient(config);
+  const state = randomBytes(4).toString("hex");
   const authUrl = client.authUrl(state);
+
+  // Fully non-interactive: the operator already completed the consent screen.
+  if (options.code) {
+    return finishAuth(client, parsePastedRedirect(options.code), options.json);
+  }
+
+  if (options.printUrl) {
+    console.log(authUrl);
+    return 0;
+  }
+
+  const headless = detectHeadlessEnvironment();
+  const manual = options.manual || (headless.headless && !options.localCallback);
+
+  if (manual) {
+    return runManualFlow(client, authUrl, state, options, config.redirectUri);
+  }
+
+  return runLocalCallbackFlow(client, authUrl, state, options, config.redirectUri, headless);
+}
+
+async function runManualFlow(
+  client: GoogleHealthClient,
+  authUrl: string,
+  state: string,
+  options: AuthOptions,
+  redirectUri: string
+): Promise<number> {
+  const out = options.json ? process.stderr : process.stdout;
+  const write = (line = "") => out.write(`${line}\n`);
+
+  write("Google Health MCP · Authorization (headless)");
+  write();
+  write("This machine has no browser, so authorize from any other device:");
+  write();
+  write("Steps");
+  write("  1. Open this URL on a device that has a browser:");
+  write();
+  write(`     ${authUrl}`);
+  write();
+  write("  2. Approve access.");
+  write(`  3. The browser redirects to ${redirectUri} and shows a connection error.`);
+  write("     That is expected — this server is not listening on that device.");
+  write("  4. Copy the FULL redirect URL out of the browser address bar.");
+  write("  5. Paste it below. Tokens are saved locally; this command never prints them.");
+  write();
+
+  const answer = await promptForCode(out);
+  return finishAuth(client, parsePastedRedirect(answer, state), options.json);
+}
+
+async function runLocalCallbackFlow(
+  client: GoogleHealthClient,
+  authUrl: string,
+  state: string,
+  options: AuthOptions,
+  redirectUri: string,
+  headless: HeadlessDetection
+): Promise<number> {
+  const redirect = parseLocalRedirectUri(redirectUri);
   const timeoutMs = Number(process.env.GOOGLE_HEALTH_AUTH_TIMEOUT_MS ?? 300_000);
 
-  const result = await waitForOAuthCode(redirect, state, timeoutMs, async (url) => {
-    if (!json) {
-      console.log("Google Health MCP · Authorization");
-      console.log("");
-      if (noOpen) {
-        console.log("Open this URL manually:");
-        console.log(`  ${url}`);
-      } else {
-        console.log("Opening Google Health authorization in your browser...");
-      }
-      console.log("");
-      console.log("Steps");
-      console.log("  1. Approve access in the browser tab that opens.");
-      console.log("  2. Google Health will redirect to the local callback.");
-      console.log("  3. Tokens are saved locally; this command never prints them.");
-      console.log("");
-      console.log("Waiting for callback...");
+  const result = await waitForOAuthCode(redirect, state, timeoutMs, (url) => {
+    if (options.json) return;
+    console.log("Google Health MCP · Authorization");
+    console.log("");
+    if (options.noOpen) {
+      console.log("Open this URL manually:");
+    } else {
+      console.log("Opening Google Health authorization in your browser...");
+      console.log("If no browser opens, use this URL:");
     }
-    if (!noOpen) openBrowser(url);
-  }, authUrl);
+    console.log(`  ${url}`);
+    console.log("");
+    if (headless.headless) {
+      console.log(`Note: this looks like a headless environment (${headless.reason}).`);
+      console.log(`The callback only works if ${redirect.host}:${redirect.port} on this host is`);
+      console.log("reachable from the browser, e.g. via:");
+      console.log(`  ssh -L ${redirect.port}:${redirect.host}:${redirect.port} <this-host>`);
+      console.log("Otherwise cancel and run `google-health-mcp-server auth --manual`.");
+      console.log("");
+    }
+    console.log("Steps");
+    console.log("  1. Approve access in the browser.");
+    console.log("  2. Google Health will redirect to the local callback.");
+    console.log("  3. Tokens are saved locally; this command never prints them.");
+    console.log("");
+    console.log("Waiting for callback...");
+  }, authUrl, !options.noOpen);
 
-  const exchange = await client.exchangeCode(result.code);
+  return finishAuth(client, result.code, options.json);
+}
+
+async function finishAuth(client: GoogleHealthClient, input: string, json: boolean): Promise<number> {
+  const exchange = await client.exchangeCode(input);
   const output = {
     ok: true,
     token_path: exchange.token_path,
@@ -82,12 +219,33 @@ export async function runAuthCommand(args: string[]): Promise<number> {
   return 0;
 }
 
+function promptForCode(output: NodeJS.WritableStream): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const rl = createInterface({ input: process.stdin, output, terminal: process.stdin.isTTY === true });
+    let answered = false;
+    rl.on("close", () => {
+      if (!answered) {
+        reject(new Error(
+          "No authorization code was pasted. For a non-interactive host, re-run with: " +
+          "google-health-mcp-server auth --code \"<redirect-url>\""
+        ));
+      }
+    });
+    rl.question("Paste the redirect URL (or code): ", (answer) => {
+      answered = true;
+      rl.close();
+      resolve(answer);
+    });
+  });
+}
+
 function waitForOAuthCode(
   redirect: LocalRedirectPlan,
   expectedState: string,
   timeoutMs: number,
   onReady: (authUrl: string) => Promise<void> | void,
-  authUrl: string
+  authUrl: string,
+  open: boolean
 ): Promise<{ code: string }> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -111,7 +269,7 @@ function waitForOAuthCode(
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }).end(successHtml());
         clearTimeout(timeout);
         server.close();
-        resolve({ code });
+        resolve({ code: requestUrl.toString() });
       } catch (error) {
         clearTimeout(timeout);
         res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" }).end((error as Error).message);
@@ -127,6 +285,7 @@ function waitForOAuthCode(
     server.listen(redirect.port, redirect.host, async () => {
       try {
         await onReady(authUrl);
+        if (open) openBrowser(authUrl);
       } catch (error) {
         clearTimeout(timeout);
         server.close();
@@ -159,13 +318,20 @@ export function buildBrowserOpenCommand(url: string, platform: NodeJS.Platform =
 }
 
 function openBrowser(url: string): void {
-  const browserOpen = buildBrowserOpenCommand(url);
-  const child = spawn(browserOpen.command, browserOpen.args, {
-    detached: true,
-    stdio: "ignore",
-    env: browserOpen.env
-  });
-  child.unref();
+  try {
+    const browserOpen = buildBrowserOpenCommand(url);
+    const child = spawn(browserOpen.command, browserOpen.args, {
+      detached: true,
+      stdio: "ignore",
+      env: browserOpen.env
+    });
+    // Missing xdg-open/open would otherwise surface as an uncaught ENOENT and
+    // kill the command while the callback server is still waiting.
+    child.on("error", () => {});
+    child.unref();
+  } catch {
+    // The URL is always printed, so a failed launch is recoverable by hand.
+  }
 }
 
 function successHtml(): string {
