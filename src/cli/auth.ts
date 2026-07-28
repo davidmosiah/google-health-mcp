@@ -1,3 +1,18 @@
+/**
+ * OAuth entry point for the `auth` command.
+ *
+ * Three flows share one authorization URL and one token exchange:
+ *
+ * - **Local callback** — opens a browser and catches the redirect on a
+ *   loopback listener. Requires a browser *on this host*.
+ * - **Manual paste** — prints the URL, the operator approves elsewhere and
+ *   pastes the redirect back. Binds nothing. Used on headless hosts, where
+ *   the redirect would otherwise land on the browser's loopback, not ours.
+ * - **Non-interactive** — `--code` exchanges an already-obtained code.
+ *
+ * Selection precedence: `--code` > `--print-url` > `--manual` > detection
+ * (see {@link detectHeadlessEnvironment}, overridable with `--local-callback`).
+ */
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -8,27 +23,42 @@ import { detectHeadlessEnvironment, type HeadlessDetection } from "../services/h
 
 export { detectHeadlessEnvironment, type HeadlessDetection };
 
+/** Loopback listener coordinates parsed out of the configured redirect URI. */
 export interface LocalRedirectPlan {
   host: string;
   port: number;
   path: string;
 }
 
+/** Platform-specific command used to hand the authorization URL to a browser. */
 export interface BrowserOpenCommand {
   command: string;
   args: string[];
   env?: NodeJS.ProcessEnv;
 }
 
+/** Parsed `auth` flags. See the module docstring for selection precedence. */
 export interface AuthOptions {
+  /** Emit machine-readable output; instructions and prompts move to stderr. */
   json: boolean;
+  /** Keep the callback flow but do not launch a browser. */
   noOpen: boolean;
+  /** Force the manual paste flow (`--manual`/`--headless`/`--no-browser`). */
   manual: boolean;
+  /** Force the callback flow on a headless host, e.g. behind an SSH tunnel. */
   localCallback: boolean;
+  /** Print only the authorization URL and exit. */
   printUrl: boolean;
+  /** Redirect URL or bare code to exchange without prompting. */
   code?: string;
 }
 
+/**
+ * Narrow the configured redirect URI to a loopback listener plan.
+ *
+ * @throws if the URI is not `http://` on a loopback host with an explicit port,
+ * which the callback flow cannot bind.
+ */
 export function parseLocalRedirectUri(value: string): LocalRedirectPlan {
   const url = new URL(value);
   const localHosts = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
@@ -42,6 +72,12 @@ export function parseLocalRedirectUri(value: string): LocalRedirectPlan {
   };
 }
 
+/**
+ * Parse `auth` flags. Unknown flags are ignored, matching the other CLI
+ * commands; only `--code` consumes a following value.
+ *
+ * @throws if `--code` is given without a value.
+ */
 export function parseAuthOptions(args: string[]): AuthOptions {
   let code: string | undefined;
   for (let index = 0; index < args.length; index += 1) {
@@ -97,6 +133,13 @@ export function parsePastedRedirect(input: string, expectedState?: string): stri
   return value;
 }
 
+/**
+ * Run the `auth` command: build the authorization URL, pick a flow, and
+ * exchange the resulting code. Tokens are written by the client's token store
+ * and are never printed or logged.
+ *
+ * @returns the process exit code (0 on success).
+ */
 export async function runAuthCommand(args: string[]): Promise<number> {
   const options = parseAuthOptions(args);
   const config = getConfig();
@@ -124,6 +167,10 @@ export async function runAuthCommand(args: string[]): Promise<number> {
   return runLocalCallbackFlow(client, authUrl, state, options, config.redirectUri, headless);
 }
 
+/**
+ * Print the authorization URL, then read the redirect back from stdin. Under
+ * `--json` the instructions and prompt go to stderr so stdout stays parseable.
+ */
 async function runManualFlow(
   client: GoogleHealthClient,
   authUrl: string,
@@ -154,6 +201,11 @@ async function runManualFlow(
   return finishAuth(client, parsePastedRedirect(answer, state), options.json);
 }
 
+/**
+ * Bind the loopback callback listener and wait for Google to redirect to it.
+ * On a host detected as headless this also prints the `ssh -L` tunnel the flow
+ * depends on, since the operator opted into it explicitly.
+ */
 async function runLocalCallbackFlow(
   client: GoogleHealthClient,
   authUrl: string,
@@ -196,6 +248,7 @@ async function runLocalCallbackFlow(
   return finishAuth(client, result.code, options.json);
 }
 
+/** Exchange the code for tokens and report where they were saved, never what they are. */
 async function finishAuth(client: GoogleHealthClient, input: string, json: boolean): Promise<number> {
   const exchange = await client.exchangeCode(input);
   const output = {
@@ -219,6 +272,10 @@ async function finishAuth(client: GoogleHealthClient, input: string, json: boole
   return 0;
 }
 
+/**
+ * Read one line from stdin. Rejects rather than hanging when stdin closes
+ * first, which is how a non-interactive host reaches this prompt.
+ */
 function promptForCode(output: NodeJS.WritableStream): Promise<string> {
   return new Promise((resolve, reject) => {
     const rl = createInterface({ input: process.stdin, output, terminal: process.stdin.isTTY === true });
@@ -239,6 +296,11 @@ function promptForCode(output: NodeJS.WritableStream): Promise<string> {
   });
 }
 
+/**
+ * Serve the callback path until Google redirects to it, then resolve with the
+ * full callback URL so the caller can read `code` and `scope` from it.
+ * Rejects on `error`, a missing code, a `state` mismatch, or timeout.
+ */
 function waitForOAuthCode(
   redirect: LocalRedirectPlan,
   expectedState: string,
@@ -295,6 +357,11 @@ function waitForOAuthCode(
   });
 }
 
+/**
+ * Build the platform's browser-launch command. On Windows the URL is passed
+ * via the environment rather than the command line so that `&` in the query
+ * string is not treated as a PowerShell statement separator.
+ */
 export function buildBrowserOpenCommand(url: string, platform: NodeJS.Platform = process.platform): BrowserOpenCommand {
   if (platform === "win32") {
     return {
@@ -317,6 +384,7 @@ export function buildBrowserOpenCommand(url: string, platform: NodeJS.Platform =
   };
 }
 
+/** Best-effort browser launch. Never throws: the URL is always printed too. */
 function openBrowser(url: string): void {
   try {
     const browserOpen = buildBrowserOpenCommand(url);
@@ -334,6 +402,7 @@ function openBrowser(url: string): void {
   }
 }
 
+/** Success page rendered in the operator's browser after the callback lands. */
 function successHtml(): string {
   return `<!doctype html>
 <html lang="en">

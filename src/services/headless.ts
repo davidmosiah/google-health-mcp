@@ -1,5 +1,8 @@
+/** Result of headless detection, including the signal that decided it. */
 export interface HeadlessDetection {
+  /** True when no usable local browser is expected on this host. */
   headless: boolean;
+  /** Human-readable signal behind the verdict; surfaced by `doctor`. */
   reason: string;
 }
 
@@ -8,6 +11,17 @@ export interface HeadlessDetection {
  * interface is not the one the operator's browser will be redirected to. Both
  * make the local-callback OAuth flow fail, so auth falls back to pasting the
  * redirect URL back into the terminal.
+ *
+ * Signals are checked in precedence order:
+ *
+ * 1. `GOOGLE_HEALTH_HEADLESS` — explicit opt in/out, wins over everything.
+ * 2. `SSH_CONNECTION`/`SSH_TTY`/`SSH_CLIENT` — a local display, if any,
+ *    belongs to the remote host rather than the operator.
+ * 3. Platform — macOS and Windows always have a usable browser.
+ * 4. `DISPLAY`/`WAYLAND_DISPLAY` — absent on Linux servers and containers.
+ *
+ * @param env defaults to `process.env`; injectable for tests and `doctor`.
+ * @param platform defaults to `process.platform`; injectable for tests.
  */
 export function detectHeadlessEnvironment(
   env: Record<string, string | undefined> = process.env,
