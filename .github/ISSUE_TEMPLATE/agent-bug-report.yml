@@ -19,7 +19,7 @@ body:
     id: package_version
     attributes:
       label: Package version
-      description: e.g. google-health-mcp-unofficial@0.5.4
+      description: e.g. google-health-mcp-unofficial@0.5.5
       placeholder: "npx -y google-health-mcp-unofficial@x.y.z"
     validations:
       required: true
@@ -46,7 +46,7 @@ body:
     id: doctor
     attributes:
       label: Doctor / connection_status (optional, redacted)
-      description: Output of `npx -y google-health-mcp-unofficial@0.5.4 doctor` with secrets removed
+      description: Output of `npx -y google-health-mcp-unofficial@0.5.5 doctor` with secrets removed
   - type: checkboxes
     id: privacy
     attributes:

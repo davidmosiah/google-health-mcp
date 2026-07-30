@@ -89,7 +89,7 @@ This package is designed for **AI agents** as first-class clients (MCP stdio / H
 ### First call for agents
 
 ```bash
-npx -y google-health-mcp-unofficial@0.5.4 doctor
+npx -y google-health-mcp-unofficial@0.5.5 doctor
 # or MCP tools: google_health_agent_manifest → google_health_connection_status
 ```
 

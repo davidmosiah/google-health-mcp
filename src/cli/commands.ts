@@ -18,10 +18,11 @@ import {
   buildSupportReport,
   formatSetupFeedbackReport
 } from "../services/support-report.js";
+import { buildSyntheticDemoPayload } from "../services/synthetic-demo.js";
 import { runAuthCommand } from "./auth.js";
 import { runSetupCommand } from "./setup.js";
 
-const COMMANDS = ["setup", "doctor", "status", "support", "coverage", "auth", "onboarding", "version", "help"] as const;
+const COMMANDS = ["setup", "doctor", "status", "support", "coverage", "auth", "onboarding", "demo", "version", "help"] as const;
 
 export async function runCliCommand(args: string[]): Promise<number | undefined> {
   const [command, ...rest] = args;
@@ -32,6 +33,7 @@ export async function runCliCommand(args: string[]): Promise<number | undefined>
   if (command === "coverage") return runCoverage(rest);
   if (command === "auth") return runAuthCommand(rest);
   if (command === "onboarding") return runOnboarding(rest);
+  if (command === "demo") return runDemo(rest);
   if (command === "version" || command === "--version" || command === "-v") {
     console.log(SERVER_VERSION);
     return 0;
@@ -46,6 +48,13 @@ export async function runCliCommand(args: string[]): Promise<number | undefined>
     return 1;
   }
   return undefined;
+}
+
+/** OAuth-free synthetic contract samples (same payload as MCP tool google_health_demo). */
+async function runDemo(_args: string[]): Promise<number> {
+  const payload = buildSyntheticDemoPayload();
+  writeCliOutput(JSON.stringify(payload, null, 2));
+  return 0;
 }
 
 async function runOnboarding(args: string[]): Promise<number> {
@@ -392,8 +401,9 @@ Usage:
   google-health-mcp-server auth --no-open  Print auth URL without opening browser
   google-health-mcp-server onboarding      Print the shared Delx Wellness onboarding flow as JSON (+ TTY summary on stderr)
   google-health-mcp-server onboarding --pt-BR  Onboarding flow in Brazilian Portuguese
+  google-health-mcp-server demo            Print OAuth-free synthetic demo payloads (is_demo:true; no credentials)
 
-Required env:
+Required env (for live API tools / auth / coverage --live; not required for demo):
   GOOGLE_HEALTH_CLIENT_ID
   GOOGLE_HEALTH_CLIENT_SECRET
   GOOGLE_HEALTH_REDIRECT_URI=http://127.0.0.1:3000/callback

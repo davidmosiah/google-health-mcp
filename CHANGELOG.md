@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.5 - 2026-07-30
+
+### Added
+
+- CLI `demo` command — OAuth-free synthetic contract samples (`is_demo: true`), same payload as MCP tool `google_health_demo`.
+- Shared `buildSyntheticDemoPayload()` used by CLI and MCP tool.
+- Community doc `docs/community/SYNTHETIC_DEMO.md` documents the working `npx … demo` path.
+
 ## 0.5.4 - 2026-07-30
 
 ### Fixed
