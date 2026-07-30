@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DEFAULT_LIMIT, DEFAULT_MAX_PAGES, GOOGLE_HEALTH_DATA_SOURCE_FAMILIES, GOOGLE_HEALTH_DATA_TYPE_SLUGS, MAX_GOOGLE_HEALTH_LIMIT, MAX_PAGES } from "../constants.js";
+import { DEFAULT_DAILY_ROLLUP_PAGE_SIZE, DEFAULT_LIMIT, DEFAULT_MAX_PAGES, GOOGLE_HEALTH_DATA_SOURCE_FAMILIES, GOOGLE_HEALTH_DATA_TYPE_SLUGS, MAX_GOOGLE_HEALTH_LIMIT, MAX_PAGES } from "../constants.js";
 import { AGENT_CLIENTS } from "../services/agent-manifest.js";
 
 export const ResponseFormatSchema = z.enum(["markdown", "json"]).default("markdown");
@@ -86,7 +86,11 @@ export const DailyRollupInputSchema = z.object({
   start_date: DateSchema,
   end_date: DateSchema.optional().describe("Exclusive end date as YYYY-MM-DD. Defaults to the next day."),
   window_size_days: z.number().int().min(1).max(90).default(1),
-  page_size: z.number().int().min(1).max(MAX_GOOGLE_HEALTH_LIMIT).default(DEFAULT_LIMIT),
+  // Default 90 (not 100): Google validates window_size_days * page_size against a per-type
+  // maxDurationDays cap; nutrition-log is 90 days, so the old DEFAULT_LIMIT=100 broke every
+  // nutrition daily_rollup that relied on schema defaults (issue #15).
+  page_size: z.number().int().min(1).max(MAX_GOOGLE_HEALTH_LIMIT).default(DEFAULT_DAILY_ROLLUP_PAGE_SIZE)
+    .describe("Page size for daily rollup windows. Must satisfy window_size_days * page_size <= the data type's max rollup duration (90 days for nutrition-log)."),
   page_token: z.string().optional(),
   data_source_family: DataSourceFamilySchema,
   privacy_mode: PrivacyModeSchema,

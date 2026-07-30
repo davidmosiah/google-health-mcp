@@ -32,16 +32,17 @@
 >
 > Or wire it standalone into Claude Desktop / Cursor / ChatGPT Desktop &mdash; see the install section below.
 
-> **What's new in 0.5.3 (2026-07-16):** endpoint-specific civil-date and date-time validation, visible partial-summary failures, and executable boundary contracts. Full notes in [CHANGELOG.md](CHANGELOG.md).
+> **What's new in 0.5.4 (2026-07-30):** `google_health_daily_rollup` no longer breaks on
+> default `nutrition-log` queries (`page_size` vs Google's 90-day cap — issue #15).
+> Full notes in [CHANGELOG.md](CHANGELOG.md).
 
-## Current OSS proof loop — real accounts wanted
+## Highest-leverage contribution — real-account coverage
 
-Through **August 12, 2026**, the highest-leverage contribution is a redacted
-coverage report from a real Fitbit, Pixel Watch, Android or Google Health API v4
-account:
+If you have Fitbit, Pixel Watch, Android health data or Google Health API v4
+access, the most useful help is a redacted coverage report:
 
 ```bash
-npx -y google-health-mcp-unofficial coverage --live --json
+npx -y google-health-mcp-unofficial@0.5.4 coverage --live --json
 ```
 
 Review the output, remove anything you do not want public, then post the report

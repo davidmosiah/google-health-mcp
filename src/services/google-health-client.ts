@@ -1,5 +1,7 @@
 import { URL, URLSearchParams } from "node:url";
 import {
+  DAILY_ROLLUP_MAX_DURATION_DAYS,
+  DEFAULT_DAILY_ROLLUP_PAGE_SIZE,
   DEFAULT_LIMIT,
   GOOGLE_HEALTH_AUTH_URL,
   GOOGLE_HEALTH_REVOKE_URL,
@@ -120,10 +122,12 @@ export class GoogleHealthClient {
   }
 
   async dailyRollup(query: DailyRollupQuery): Promise<unknown> {
+    const windowSizeDays = Math.max(1, Math.trunc(query.windowSizeDays ?? 1));
+    const pageSize = resolveDailyRollupPageSize(query.dataType, windowSizeDays, query.pageSize);
     return this.post(`/v4/users/me/dataTypes/${encodeDataType(query.dataType)}/dataPoints:dailyRollUp`, {
       range: civilDateRange(query.startDate, query.endDate ?? nextDate(query.startDate)),
-      windowSizeDays: query.windowSizeDays ?? 1,
-      pageSize: normalizePageSize(query.pageSize),
+      windowSizeDays,
+      pageSize,
       pageToken: query.pageToken,
       dataSourceFamily: query.dataSourceFamily
     });
@@ -341,6 +345,41 @@ function encodeDataType(dataType: string): string {
 function normalizePageSize(value?: number): number | undefined {
   if (value === undefined) return undefined;
   return Math.min(Math.max(Math.trunc(value), 1), MAX_GOOGLE_HEALTH_LIMIT);
+}
+
+/**
+ * Google Health dailyRollUp rejects queries where window_size_days * page_size exceeds a
+ * per-data-type maxDurationDays (INVALID_ROLLUP_QUERY_DURATION). Cap is independent of the
+ * requested start/end range — so a 1-day nutrition query still fails with page_size=100.
+ *
+ * Confirmed cap: nutrition-log = 90 days (issue #15). Unknown types keep the requested size.
+ * When the product would exceed a known cap, we clamp page_size (agent-friendly) instead of
+ * forwarding Google's range-focused error that misleads callers into expanding the date range.
+ */
+export function resolveDailyRollupPageSize(
+  dataType: string,
+  windowSizeDays: number,
+  pageSize?: number
+): number {
+  const window = Math.max(1, Math.trunc(windowSizeDays || 1));
+  const maxDurationDays = DAILY_ROLLUP_MAX_DURATION_DAYS[dataType];
+  const requested =
+    pageSize === undefined
+      ? DEFAULT_DAILY_ROLLUP_PAGE_SIZE
+      : (normalizePageSize(pageSize) ?? DEFAULT_DAILY_ROLLUP_PAGE_SIZE);
+
+  if (maxDurationDays === undefined) {
+    return requested;
+  }
+
+  if (window > maxDurationDays) {
+    throw new Error(
+      `window_size_days=${window} exceeds Google Health max rollup duration of ${maxDurationDays} days for data_type "${dataType}". Lower window_size_days (or use list/reconcile).`
+    );
+  }
+
+  const maxPageSize = Math.max(1, Math.floor(maxDurationDays / window));
+  return Math.min(requested, maxPageSize);
 }
 
 function civilDateRange(startDate: string, endDate: string) {

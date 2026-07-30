@@ -1,5 +1,5 @@
 export const SERVER_NAME = "google-health-mcp-server";
-export const SERVER_VERSION = "0.5.3";
+export const SERVER_VERSION = "0.5.4";
 export const NPM_PACKAGE_NAME = "google-health-mcp-unofficial";
 export const PINNED_NPM_PACKAGE = `${NPM_PACKAGE_NAME}@${SERVER_VERSION}`;
 
@@ -28,6 +28,18 @@ export const DEFAULT_LIMIT = 100;
 export const MAX_GOOGLE_HEALTH_LIMIT = 10_000;
 export const DEFAULT_MAX_PAGES = 1;
 export const MAX_PAGES = 10;
+
+// Google Health dailyRollUp validates: window_size_days * page_size <= maxDurationDays
+// per data type (see INVALID_ROLLUP_QUERY_DURATION). Only confirmed caps live here;
+// unknown types keep the generic DEFAULT_LIMIT and are not clamped.
+// Confirmed live by external report: issue #15 (nutrition-log maxDurationDays=90).
+export const DAILY_ROLLUP_MAX_DURATION_DAYS: Readonly<Record<string, number>> = {
+  "nutrition-log": 90
+};
+
+// Safer default for daily_rollup tool input when agents omit page_size. Still below the
+// tightest known cap (90) so window_size_days=1 * page_size works for nutrition-log.
+export const DEFAULT_DAILY_ROLLUP_PAGE_SIZE = 90;
 
 export const GOOGLE_HEALTH_DATA_SOURCE_FAMILIES = [
   "users/me/dataSourceFamilies/all-sources",

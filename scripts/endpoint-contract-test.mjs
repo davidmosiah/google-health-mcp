@@ -50,6 +50,38 @@ try {
   assert.equal(requests[1].body.range.startTime, '2026-07-08T23:00:00-03:00');
   assert.equal(requests[1].body.range.endTime, '2026-07-15T23:00:00-03:00');
 
+  // issue #15: nutrition-log maxDurationDays=90; default/oversize page_size must clamp
+  // so window_size_days * page_size never exceeds the cap (independent of date range).
+  await client.dailyRollup({
+    dataType: 'nutrition-log',
+    startDate: '2026-07-13',
+    endDate: '2026-07-14',
+    pageSize: 100,
+  });
+  const nutritionReq = requests[2];
+  assert.match(nutritionReq.url.pathname, /dataTypes\/nutrition-log\/dataPoints:dailyRollUp$/);
+  assert.equal(nutritionReq.body.windowSizeDays, 1);
+  assert.equal(nutritionReq.body.pageSize, 90, 'page_size 100 must clamp to 90 for nutrition-log');
+
+  await client.dailyRollup({
+    dataType: 'nutrition-log',
+    startDate: '2026-07-13',
+    endDate: '2026-07-14',
+    windowSizeDays: 2,
+    pageSize: 100,
+  });
+  assert.equal(requests[3].body.windowSizeDays, 2);
+  assert.equal(requests[3].body.pageSize, 45, '2 * page_size must stay <= 90');
+
+  // steps has no known cap — oversized page_size is left alone (still within MAX)
+  await client.dailyRollup({
+    dataType: 'steps',
+    startDate: '2026-07-13',
+    endDate: '2026-07-14',
+    pageSize: 100,
+  });
+  assert.equal(requests[4].body.pageSize, 100);
+
   const fetchCountBeforeInvalid = requests.length;
   for (const action of [
     () => client.dailyRollup({ dataType: 'steps', startDate: '2026-02-30' }),

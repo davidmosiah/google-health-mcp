@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.4 - 2026-07-30
+
+### Fixed
+
+- **daily_rollup + nutrition-log (issue #15):** Google Health rejects queries where
+  `window_size_days * page_size` exceeds a per-type max duration (90 days for
+  `nutrition-log`), independent of the requested date range. The tool schema default
+  `page_size=100` made every default nutrition daily rollup fail with a misleading
+  `range` error. Defaults are now 90, and the client clamps page size for known caps
+  so agents (including small local models) succeed without guessing.
+
+### Changed
+
+- `DEFAULT_DAILY_ROLLUP_PAGE_SIZE = 90` for `google_health_daily_rollup` only
+  (list/reconcile keep `DEFAULT_LIMIT = 100`).
+- Documented `DAILY_ROLLUP_MAX_DURATION_DAYS` for confirmed per-type caps.
+
 ## 0.5.3 - 2026-07-16
 
 ### Fixed
