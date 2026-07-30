@@ -1,0 +1,56 @@
+name: Agent bug report
+description: Report a failure an AI agent hit while using this MCP (redacted)
+title: "[agent] "
+labels: ["bug", "agent-ready"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not paste OAuth tokens, refresh tokens, raw health measurements, or local paths.**
+        Prefer `coverage --json` / connection_status redacted output.
+  - type: textarea
+    id: client
+    attributes:
+      label: MCP client
+      description: Claude Desktop, Cursor, Hermes, custom agent, etc.
+    validations:
+      required: true
+  - type: input
+    id: package_version
+    attributes:
+      label: Package version
+      description: e.g. google-health-mcp-unofficial@0.5.4
+      placeholder: "npx -y google-health-mcp-unofficial@x.y.z"
+    validations:
+      required: true
+  - type: textarea
+    id: tool
+    attributes:
+      label: Tool call (name + args, redacted)
+      description: JSON of the tool call without secrets or personal measurements
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / error (redacted)
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Doctor / connection_status (optional, redacted)
+      description: Output of `npx -y google-health-mcp-unofficial@0.5.4 doctor` with secrets removed
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I removed tokens, secrets, and raw health values from this report
+          required: true

@@ -74,3 +74,35 @@ write, confirm against the [REST reference](https://developers.google.com/health
 
 The `mg → g` sodium unit shim in `google-v4-nutrition-datapoint.ts` is already verified (inverse of
 the Open Food Facts mapping); only the envelope, path, slug and energy unit remain open.
+
+## Agent-first contributions
+
+This package is designed for **AI agents** as first-class clients (MCP stdio / HTTP).
+
+### Before you open a PR
+
+1. Run `npm test` from the repo root (must exit 0).
+2. Prefer a **contract test** that exercises the real shipped path (schema, client, or smoke), not a re-implementation of the fix.
+3. Do **not** commit `.env`, token caches, OAuth secrets, or raw health exports.
+4. Keep discovery tools intact: `google_health_agent_manifest`, `google_health_connection_status`, capabilities, and privacy modes.
+
+### First call for agents
+
+```bash
+npx -y google-health-mcp-unofficial@0.5.4 doctor
+# or MCP tools: google_health_agent_manifest → google_health_connection_status
+```
+
+### Privacy
+
+- Default to non-raw privacy modes.
+- Never log OAuth tokens or personal measurements in tests or fixtures.
+- Use redacted coverage reports for real-account validation issues.
+
+### Scoring
+
+We aim for **mcp-scorecard ≥ 90** offline:
+
+```bash
+npx -y mcp-scorecard@0.5.3 .
+```
