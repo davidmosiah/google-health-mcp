@@ -447,11 +447,23 @@ export function registerGoogleHealthTools(server: McpServer): void {
   server.registerTool("google_health_revoke_access", {
     title: "Revoke Google Health OAuth Access",
     description: "Revoke the current Google OAuth grant and delete the local token file. Use only when the user explicitly wants to disconnect Google Health. Gated: requires explicit user intent — agents must not call this autonomously.",
-    inputSchema: ResponseOnlyInputSchema.shape,
+    inputSchema: {
+      explicit_user_intent: z
+        .boolean()
+        .optional()
+        .describe("Must be true after the user explicitly asked to disconnect. Prevents agents from revoking autonomously."),
+      response_format: z.enum(["markdown", "json"]).default("markdown")
+    },
     outputSchema: RevokeAccessOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
-  }, async ({ response_format }) => {
+  }, async ({ explicit_user_intent, response_format }) => {
     try {
+      if (explicit_user_intent !== true) {
+        return makeError(
+          "USER_ACTION_REQUIRED: explicit_user_intent must be true to revoke access. Ask the user to confirm disconnect first."
+        );
+      }
+
       const result = await client().revokeAccess();
       const output = { ...result, note: "Google Health access was revoked and local tokens were removed. Re-authorize before future API calls." };
       return makeResponse(output, response_format, bulletList("Google Health Access Revoked", output));
