@@ -244,12 +244,12 @@ export function registerGoogleHealthTools(server: McpServer): void {
     inputSchema: SimpleReadInputSchema.shape,
     outputSchema: EndpointDataOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
-  }, async ({ response_format, privacy_mode }) => {
+  }, async ({ response_format, privacy_mode, explicit_user_intent }) => {
     const endpoint = "/v4/users/me/identity";
     let mode: "summary" | "structured" | "raw" = privacy_mode ?? "structured";
     try {
       const config = getConfig();
-      mode = resolvePrivacyMode(config, privacy_mode);
+      mode = resolvePrivacyMode(config, privacy_mode, { explicit_user_intent });
       const data = applyPrivacy(endpoint, await new GoogleHealthClient(config).getIdentity(), mode);
       return makeResponse(endpointOutput(endpoint, mode, data), response_format, bulletList("Google Health Identity", data as Record<string, unknown>));
     } catch (error) {
@@ -263,12 +263,12 @@ export function registerGoogleHealthTools(server: McpServer): void {
     inputSchema: SimpleReadInputSchema.shape,
     outputSchema: EndpointDataOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
-  }, async ({ response_format, privacy_mode }) => {
+  }, async ({ response_format, privacy_mode, explicit_user_intent }) => {
     const endpoint = "/v4/users/me/profile";
     let mode: "summary" | "structured" | "raw" = privacy_mode ?? "structured";
     try {
       const config = getConfig();
-      mode = resolvePrivacyMode(config, privacy_mode);
+      mode = resolvePrivacyMode(config, privacy_mode, { explicit_user_intent });
       const data = applyPrivacy(endpoint, await new GoogleHealthClient(config).getProfile(), mode);
       return makeResponse(endpointOutput(endpoint, mode, data), response_format, bulletList("Google Health Profile", data as Record<string, unknown>));
     } catch (error) {
@@ -282,12 +282,12 @@ export function registerGoogleHealthTools(server: McpServer): void {
     inputSchema: SimpleReadInputSchema.shape,
     outputSchema: EndpointDataOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
-  }, async ({ response_format, privacy_mode }) => {
+  }, async ({ response_format, privacy_mode, explicit_user_intent }) => {
     const endpoint = "/v4/users/me/settings";
     let mode: "summary" | "structured" | "raw" = privacy_mode ?? "structured";
     try {
       const config = getConfig();
-      mode = resolvePrivacyMode(config, privacy_mode);
+      mode = resolvePrivacyMode(config, privacy_mode, { explicit_user_intent });
       const data = applyPrivacy(endpoint, await new GoogleHealthClient(config).getSettings(), mode);
       return makeResponse(endpointOutput(endpoint, mode, data), response_format, bulletList("Google Health Settings", data as Record<string, unknown>));
     } catch (error) {
@@ -306,7 +306,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     let mode: "summary" | "structured" | "raw" = params.privacy_mode ?? "structured";
     try {
       const config = getConfig();
-      mode = resolvePrivacyMode(config, params.privacy_mode);
+      mode = resolvePrivacyMode(config, params.privacy_mode, { explicit_user_intent: (params as { explicit_user_intent?: boolean }).explicit_user_intent });
       const data = applyPrivacy(endpoint, await new GoogleHealthClient(config).listDataPoints({
         dataType: params.data_type,
         filter: params.filter,
@@ -330,7 +330,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     let mode: "summary" | "structured" | "raw" = params.privacy_mode ?? "structured";
     try {
       const config = getConfig();
-      mode = resolvePrivacyMode(config, params.privacy_mode);
+      mode = resolvePrivacyMode(config, params.privacy_mode, { explicit_user_intent: (params as { explicit_user_intent?: boolean }).explicit_user_intent });
       const data = applyPrivacy(endpoint, await new GoogleHealthClient(config).reconcileDataPoints({
         dataType: params.data_type,
         filter: params.filter,
@@ -355,7 +355,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     let mode: "summary" | "structured" | "raw" = params.privacy_mode ?? "structured";
     try {
       const config = getConfig();
-      mode = resolvePrivacyMode(config, params.privacy_mode);
+      mode = resolvePrivacyMode(config, params.privacy_mode, { explicit_user_intent: (params as { explicit_user_intent?: boolean }).explicit_user_intent });
       const data = applyPrivacy(endpoint, await new GoogleHealthClient(config).dailyRollup({
         dataType: params.data_type,
         startDate: params.start_date,
@@ -382,7 +382,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     let mode: "summary" | "structured" | "raw" = params.privacy_mode ?? "structured";
     try {
       const config = getConfig();
-      mode = resolvePrivacyMode(config, params.privacy_mode);
+      mode = resolvePrivacyMode(config, params.privacy_mode, { explicit_user_intent: (params as { explicit_user_intent?: boolean }).explicit_user_intent });
       const data = applyPrivacy(endpoint, await new GoogleHealthClient(config).rollup({
         dataType: params.data_type,
         startTime: params.start_time,

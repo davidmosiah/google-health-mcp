@@ -5,6 +5,11 @@ import { AGENT_CLIENTS } from "../services/agent-manifest.js";
 export const ResponseFormatSchema = z.enum(["markdown", "json"]).default("markdown");
 export const AgentClientSchema = z.enum(AGENT_CLIENTS).default("generic");
 export const PrivacyModeValueSchema = z.enum(["summary", "structured", "raw"]);
+export const ExplicitPrivacyIntentSchema = z
+  .boolean()
+  .optional()
+  .describe("Required true when privacy_mode=raw (agent escalation of redaction).");
+
 export const PrivacyModeSchema = PrivacyModeValueSchema.optional()
   .describe("Optional per-call privacy override. Defaults to GOOGLE_HEALTH_PRIVACY_MODE or structured. raw returns upstream Google Health JSON.");
 
@@ -17,6 +22,7 @@ export const DataSourceFamilySchema = z.enum(GOOGLE_HEALTH_DATA_SOURCE_FAMILIES)
 
 export const SimpleReadInputSchema = z.object({
   privacy_mode: PrivacyModeSchema,
+  explicit_user_intent: ExplicitPrivacyIntentSchema,
   response_format: ResponseFormatSchema
 }).strict();
 
@@ -74,6 +80,7 @@ export const DataPointsInputSchema = z.object({
   page_size: z.number().int().min(1).max(MAX_GOOGLE_HEALTH_LIMIT).default(DEFAULT_LIMIT),
   page_token: z.string().optional(),
   privacy_mode: PrivacyModeSchema,
+  explicit_user_intent: ExplicitPrivacyIntentSchema,
   response_format: ResponseFormatSchema
 }).strict();
 
@@ -94,6 +101,7 @@ export const DailyRollupInputSchema = z.object({
   page_token: z.string().optional(),
   data_source_family: DataSourceFamilySchema,
   privacy_mode: PrivacyModeSchema,
+  explicit_user_intent: ExplicitPrivacyIntentSchema,
   response_format: ResponseFormatSchema
 }).strict();
 
@@ -106,6 +114,7 @@ export const RollupInputSchema = z.object({
   page_token: z.string().optional(),
   data_source_family: DataSourceFamilySchema,
   privacy_mode: PrivacyModeSchema,
+  explicit_user_intent: ExplicitPrivacyIntentSchema,
   response_format: ResponseFormatSchema
 }).strict();
 
@@ -137,12 +146,14 @@ export const CollectionInputSchema = z.object({
   all_pages: z.boolean().default(false),
   max_pages: z.number().int().min(1).max(MAX_PAGES).default(DEFAULT_MAX_PAGES),
   privacy_mode: PrivacyModeSchema,
+  explicit_user_intent: ExplicitPrivacyIntentSchema,
   response_format: ResponseFormatSchema
 }).strict();
 
 export const IdInputSchema = z.object({
   id: z.union([z.string().min(1), z.number().int().positive()]),
   privacy_mode: PrivacyModeSchema,
+  explicit_user_intent: ExplicitPrivacyIntentSchema,
   response_format: ResponseFormatSchema
 }).strict();
 

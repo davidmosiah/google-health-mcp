@@ -1,3 +1,9 @@
+## 0.5.7 - 2026-07-30
+
+### Added / Fixed
+
+- Use delx-mcp-kit for privacy escalation.
+
 # Changelog
 
 
