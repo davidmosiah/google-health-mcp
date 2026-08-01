@@ -1,3 +1,32 @@
+## 0.7.1 - 2026-08-01
+
+### Security (round 3: the *limits* printed next to the key list were prose nobody tested)
+
+- **The gate for the list did not cover the sentences around the list.** 0.7.0 shipped
+  `redaction-doc-test.mjs`, which proves the published key list against the exported one,
+  character for character. The paragraph next to it — "raw requires `explicit_user_intent`",
+  "`summary` is never less restrictive", "`altitude` is not location", "`summary` flattens to
+  depth 2" — was still text nothing compared with behaviour. Same defect as 0.6.0 and 0.7.0
+  fixed, one layer further in. **A public promise with no behavioural test is a debt, not a
+  feature.**
+- **`npm run test:declared-limits` is the new gate.** Ten limits are now assertions over the
+  observed output of the built server, and the `declared-limits` block published in README.md
+  and SECURITY.md must mirror the tested registry exactly, in order. Writing a limit into the
+  docs without a test fails the build; deleting the block fails the build. Each assertion was
+  verified to be falsifiable by mutating the code it guards (removing the intent gate, moving
+  the depth-2 floor, summarizing before stripping) and watching the gate go red.
+- **The text was narrowed until it was true, not widened.** SECURITY.md said raw "requires
+  `explicit_user_intent=true`", full stop. The code only requires it of an **agent**
+  escalation: a local `GOOGLE_HEALTH_PRIVACY_MODE=raw` default is honoured on every call with
+  no per-call intent. That is the right behaviour — the machine owner is not an agent — but
+  the sentence promised more than the code did. Both docs and the `google_health_privacy_audit`
+  notes now state the two paths separately.
+- **What an agent gets from this:** `google_health_privacy_audit` publishes one more documented
+  limit (the intent gate and its exception), and every limit an agent may read in the README is
+  now a claim some test would fail on. A limit that cannot be tested — the location guard has
+  never met a real Google payload, because v4 documents no location data type — is labelled
+  **NOT VERIFIED** in both docs instead of reading like a guarantee.
+
 ## 0.7.0 - 2026-08-01
 
 ### Security (round 2: the key list in 0.6.0 was still Strava's, one layer up)

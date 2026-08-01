@@ -124,7 +124,7 @@ The full tool catalog — Google Health API methods, agent manifest, diagnostics
 - OAuth tokens are stored locally at `~/.google-health-mcp/tokens.json` with `0600` permissions.
 - Secrets can live in `~/.google-health-mcp/config.json` or `GOOGLE_HEALTH_*` environment variables.
 - Tools never return access tokens, refresh tokens or client secrets.
-- `GOOGLE_HEALTH_PRIVACY_MODE=structured` is the default; `raw` mode is explicit and should be used only for debugging or deep analysis.
+- `GOOGLE_HEALTH_PRIVACY_MODE=structured` is the default; `raw` mode is explicit and should be used only for debugging or deep analysis. An agent asking for `privacy_mode=raw` is refused unless it passes `explicit_user_intent=true`; setting `GOOGLE_HEALTH_PRIVACY_MODE=raw` yourself is your own call and needs no per-call intent.
 - Structured mode preserves complete upstream physiological fields and future v4 additions while removing identity, location and secret-bearing values.
 - "Location redaction" means a concrete key list, not a slogan. Coordinate-bearing **leaf keys**, always dropped in `structured` and `summary` (matched ignoring case, `_` and `-`, so `latitude_e7` and `latitudeE7` are the same key):
 
@@ -140,9 +140,21 @@ The full tool catalog — Google Health API methods, agent manifest, diagnostics
 
   `google_health_privacy_audit` returns both live lists in `gps_redacted_keys` and `gps_redacted_container_keys`, and `gps_redaction_default` is measured at call time by pushing a synthetic record through both non-raw modes and scanning the output by key **and by coordinate value** — it is not a hardcoded `true`. `npm run test:redaction-docs` fails the build if these two blocks stop matching the code, so the published promise cannot drift from the enforcement list again. Google Health API v4 does not currently document a location/route data type, so this is a forward-compatible guard rather than a patch for an observed leak.
 
-- Two limits of that promise, stated instead of implied:
-  - `altitude` and `elevation` are **not** redacted as location. `altitude` is an official Google Health v4 data type (`activity_and_fitness`), so dropping the key would delete a real metric, and an altitude alone does not localize anyone. An altitude *inside* a redacted place container is dropped with the container.
-  - `summary` mode flattens numeric leaves up to depth 2, so it promotes values to the top of the response. It strips before summarizing and can never be less restrictive than `structured`, but any coordinate key outside the lists above would be promoted rather than hidden. The key list is the boundary; the mode is not.
+- Limits of that promise, stated instead of implied. Every line below is proved by a behavioural test (`npm run test:declared-limits`) that fails if the behaviour changes; a line marked **NOT VERIFIED** is a statement no test backs, labelled instead of left to read as a guarantee. A limit written here without a test fails the build:
+
+  <!-- declared-limits:start -->
+  - `default_mode_is_structured` — with no `privacy_mode` argument and no `GOOGLE_HEALTH_PRIVACY_MODE`, every read runs in `structured`.
+  - `raw_requires_explicit_user_intent` — an agent asking for `privacy_mode=raw` is refused with `USER_ACTION_REQUIRED` unless it also passes `explicit_user_intent=true`.
+  - `local_raw_default_needs_no_per_call_intent` — `GOOGLE_HEALTH_PRIVACY_MODE=raw` in your own config or environment is honoured on every call with no per-call intent; the gate is about agent escalation, not about the machine owner.
+  - `raw_is_an_unfiltered_passthrough` — `raw` returns the upstream payload unchanged; redaction is a property of `structured` and `summary`, never of `raw`.
+  - `structured_drops_identity_and_secret_keys` — tokens, `authorization`, e-mail, names and avatars are dropped at any depth in `structured`, while physiology and provenance survive.
+  - `summary_is_never_less_restrictive_than_structured` — `summary` strips first and summarizes after, so nothing `structured` drops can reappear in `summary`.
+  - `summary_flattens_numeric_leaves_to_depth_2` — `summary` promotes numeric leaves down to depth 2 of the data-type payload into `value`; anything deeper is not reported at all.
+  - `summary_promotes_unlisted_coordinate_keys` — a coordinate key outside the lists above is promoted by `summary`, not hidden. The key list is the boundary, not the mode.
+  - `altitude_and_elevation_are_not_location` — `altitude` is an official v4 data type (`activity_and_fitness`) and survives redaction, as does `elevation`; an altitude alone does not localize a user.
+  - `altitude_inside_a_place_container_is_dropped` — the same altitude inside a redacted location container dies with the container.
+  - `location_guard_never_observed_upstream` — NOT VERIFIED: Google Health API v4 documents no location/route data type, so no test here has ever seen a real Google payload carrying coordinates. The key list is a forward-compatible guard derived from Google's own encodings, not a measured fix for an observed leak.
+  <!-- declared-limits:end -->
 - Daily rollups use validated civil `YYYY-MM-DD` ranges; general rollups preserve exact timezone-aware ISO date-times. Invalid or reversed ranges fail before HTTP.
 - `support --redacted` prints a copy-paste support bundle for GitHub issues without tokens, secrets, local paths or health measurements.
 - `support --feedback --json` prints an anonymous setup-feedback bundle for beta testers and MCP client reports.

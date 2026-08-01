@@ -46,6 +46,7 @@ export function buildPrivacyAudit(): Record<string, unknown> {
       "Google Health API v4 is new and still evolving; check the official release notes before stable public launches because scopes and data types can change.",
       "OAuth tokens are stored locally and are not returned by tools.",
       "Raw Google Health payloads require GOOGLE_HEALTH_PRIVACY_MODE=raw or privacy_mode=raw.",
+      "Documented limit: privacy_mode=raw asked for by an agent is refused with USER_ACTION_REQUIRED unless explicit_user_intent=true; a local GOOGLE_HEALTH_PRIVACY_MODE=raw default is honoured with no per-call intent, because it is the machine owner's own choice.",
       "Sensitive profile and token fields are removed or minimized unless raw mode is explicitly requested.",
       "Google Health API v4 does not currently document a location/route data type, so gps_redaction_default is a forward-compatible guard over gps_redacted_keys rather than a fix for an observed leak.",
       "Documented limit: altitude and elevation are NOT redacted. Altitude is an official Google Health v4 data type (activity_and_fitness) and does not localize a user on its own; altitude inside a redacted place container is dropped with the container.",
