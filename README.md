@@ -126,7 +126,23 @@ The full tool catalog — Google Health API methods, agent manifest, diagnostics
 - Tools never return access tokens, refresh tokens or client secrets.
 - `GOOGLE_HEALTH_PRIVACY_MODE=structured` is the default; `raw` mode is explicit and should be used only for debugging or deep analysis.
 - Structured mode preserves complete upstream physiological fields and future v4 additions while removing identity, location and secret-bearing values.
-- "Location redaction" means a concrete key list, not a slogan: `startLatitude`, `startLongitude`, `endLatitude`, `endLongitude`, `latitude`, `longitude`, `lat`, `lon`, `lng`, `latlng`, `start_latlng`, `end_latlng`, `coordinates`, `coordinate`, `gps`, `gpx`, `geoPolylineDTO`, `map`, `polyline`, `summary_polyline`. `google_health_privacy_audit` returns the live list in `gps_redacted_keys`, and `gps_redaction_default` is measured at call time by pushing a synthetic record through both non-raw modes — it is not a hardcoded `true`. Google Health API v4 does not currently document a location/route data type, so this is a forward-compatible guard rather than a patch for an observed leak.
+- "Location redaction" means a concrete key list, not a slogan. Coordinate-bearing **leaf keys**, always dropped in `structured` and `summary` (matched ignoring case, `_` and `-`, so `latitude_e7` and `latitudeE7` are the same key):
+
+  <!-- gps-redacted-keys:start -->
+  `startLatitude`, `startLongitude`, `start_latlng`, `endLatitude`, `endLongitude`, `end_latlng`, `latitude`, `longitude`, `lat`, `lon`, `lng`, `latlng`, `coordinates`, `coordinate`, `gps`, `gpx`, `geoPolylineDTO`, `map`, `polyline`, `summary_polyline`, `activities-tracker-gps`, `latitudeE7`, `longitudeE7`, `latE7`, `lngE7`, `lonE7`, `startLatitudeE7`, `startLongitudeE7`, `endLatitudeE7`, `endLongitudeE7`, `lat_deg`, `lng_deg`, `lon_deg`, `latitudeDegrees`, `longitudeDegrees`
+  <!-- gps-redacted-keys:end -->
+
+  Location **container keys**, dropped as a whole object — with their `address`/`city`/`placeId` siblings and any coordinate spelling this list never anticipated — whenever they hold a place record (an object, or an array containing objects). A container holding only scalars is a label, not a place, and survives: `location: ["gym", "home"]` stays, `location: { latitudeE7: … }` does not.
+
+  <!-- gps-redacted-containers:start -->
+  `location`, `locations`, `geoLocation`, `geoLocations`, `geo`, `geoJson`, `route`, `routes`, `position`, `positions`, `waypoint`, `waypoints`, `trackPoint`, `trackPoints`, `placeVisit`
+  <!-- gps-redacted-containers:end -->
+
+  `google_health_privacy_audit` returns both live lists in `gps_redacted_keys` and `gps_redacted_container_keys`, and `gps_redaction_default` is measured at call time by pushing a synthetic record through both non-raw modes and scanning the output by key **and by coordinate value** — it is not a hardcoded `true`. `npm run test:redaction-docs` fails the build if these two blocks stop matching the code, so the published promise cannot drift from the enforcement list again. Google Health API v4 does not currently document a location/route data type, so this is a forward-compatible guard rather than a patch for an observed leak.
+
+- Two limits of that promise, stated instead of implied:
+  - `altitude` and `elevation` are **not** redacted as location. `altitude` is an official Google Health v4 data type (`activity_and_fitness`), so dropping the key would delete a real metric, and an altitude alone does not localize anyone. An altitude *inside* a redacted place container is dropped with the container.
+  - `summary` mode flattens numeric leaves up to depth 2, so it promotes values to the top of the response. It strips before summarizing and can never be less restrictive than `structured`, but any coordinate key outside the lists above would be promoted rather than hidden. The key list is the boundary; the mode is not.
 - Daily rollups use validated civil `YYYY-MM-DD` ranges; general rollups preserve exact timezone-aware ISO date-times. Invalid or reversed ranges fail before HTTP.
 - `support --redacted` prints a copy-paste support bundle for GitHub issues without tokens, secrets, local paths or health measurements.
 - `support --feedback --json` prints an anonymous setup-feedback bundle for beta testers and MCP client reports.

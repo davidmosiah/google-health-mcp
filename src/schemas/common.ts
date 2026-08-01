@@ -221,6 +221,7 @@ export const PrivacyAuditOutputSchema = z.object({
   raw_payloads_opt_in: z.boolean(),
   gps_redaction_default: z.boolean(),
   gps_redacted_keys: z.array(z.string()),
+  gps_redacted_container_keys: z.array(z.string()),
   cache_enabled: z.boolean(),
   cache_path: z.string(),
   token_path: z.string(),

@@ -55,13 +55,6 @@ export function normalizeRecord(endpoint: string, record: unknown, mode: Privacy
   return removeSensitiveDeep(record);
 }
 
-export function normalizeStreams(payload: unknown, mode: PrivacyMode, includeGps: boolean): unknown {
-  if (mode === "raw") return payload;
-  const clean = isObject(payload) ? removeSensitiveDeep(payload) : payload;
-  if (!includeGps && isObject(clean)) delete clean.dataSource;
-  return mode === "summary" && isObject(clean) ? summarizeGoogleHealthRecord(clean) : clean;
-}
-
 function normalizeIdentity(record: Record<string, unknown>, mode: PrivacyMode): unknown {
   return pickDefined({
     name: mode === "summary" ? undefined : record.name,
@@ -120,7 +113,7 @@ function collectNumbers(record: Record<string, unknown>, out: Record<string, unk
   for (const [key, value] of Object.entries(record)) {
     // Same drop-list as removeSensitiveDeep. Without this, a caller that summarizes an
     // unstripped record would flatten coordinates into the summary payload.
-    if (isSensitiveKey(key)) continue;
+    if (isSensitiveEntry(key, value)) continue;
     if (typeof value === "number" || typeof value === "string" && /^-?\d+(\.\d+)?$/.test(value)) out[key] = value;
     else if (isObject(value)) collectNumbers(value, out, depth + 1);
   }
@@ -143,7 +136,7 @@ function removeSensitiveDeep(value: unknown): unknown {
   if (!isObject(value)) return value;
   const clone: Record<string, unknown> = {};
   for (const [key, child] of Object.entries(value)) {
-    if (isSensitiveKey(key)) continue;
+    if (isSensitiveEntry(key, child)) continue;
     clone[key] = removeSensitiveDeep(child);
   }
   return clone;
@@ -153,56 +146,145 @@ function removeSensitive(record: Record<string, unknown>): Record<string, unknow
   return removeSensitiveDeep(record) as Record<string, unknown>;
 }
 
-// Identity / secret-bearing keys owned by this server. Location keys are NOT listed here:
-// they come from delx-mcp-kit's isGpsKey(), which is the single source of truth for what
-// "GPS redaction" means across the Delx wellness servers (latitude, longitude, lat, lon,
-// lng, coordinates, startLatitude/startLongitude, latlng, map, polyline, ...).
+// Identity / secret-bearing keys owned by this server. Location keys live below.
 const SENSITIVE_KEYS = new Set([
   "email", "fullName", "firstName", "lastName", "avatar", "photoUrl",
   "access_token", "refresh_token", "id_token", "authorization", "legacyUserId",
   "tcxLink"
 ]);
 
-/** A key is dropped when it is an identity/secret field OR any location field the kit knows. */
-export function isSensitiveKey(key: string): boolean {
-  return SENSITIVE_KEYS.has(key) || isGpsKey(key);
+/** Match on shape, not spelling: latitudeE7 / latitude_e7 / LATITUDE_E7 are one key. */
+function normalizeKey(key: string): string {
+  return key.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 /**
- * Location keys this server claims to redact. Enumerated from delx-mcp-kit's isGpsKey()
- * so the public claim can never drift from the code that enforces it.
+ * Coordinate-bearing LEAF keys. Always dropped, whatever the value is.
+ *
+ * Two provenances, deliberately kept visible:
+ *  - the cross-server floor from delx-mcp-kit's isGpsKey() (latitude, lat, latlng, polyline,
+ *    map, gpx, activities-tracker-gps, ...), which was itself derived from Strava's naming;
+ *  - names re-derived for THIS provider. Google encodes coordinates as integer degrees x 1e7
+ *    (`latitudeE7` / `longitudeE7` in Location History and the Maps APIs) and as explicit
+ *    degree suffixes (`lat_deg`). Inheriting the kit list without adding these repeated, one
+ *    layer up, the exact mistake the kit was adopted to fix.
+ *
+ * The additions stay LOCAL to this server rather than going into delx-mcp-kit because the
+ * E7 encoding is Google's, not a cross-provider convention: pushing it into the shared kit
+ * would hand Strava/Garmin/Oura servers keys their APIs never emit, and would gate this
+ * repo's fix on a kit release. Promoting them to the kit is a follow-up, not a blocker.
  */
 export const GPS_REDACTED_KEYS: readonly string[] = [
+  // cross-server floor (delx-mcp-kit isGpsKey)
   "startLatitude", "startLongitude", "start_latlng", "endLatitude", "endLongitude", "end_latlng",
   "latitude", "longitude", "lat", "lon", "lng", "latlng", "coordinates", "coordinate",
-  "gps", "gpx", "geoPolylineDTO", "map", "polyline", "summary_polyline", "activities-tracker-gps"
-].filter((key) => isGpsKey(key));
+  "gps", "gpx", "geoPolylineDTO", "map", "polyline", "summary_polyline", "activities-tracker-gps",
+  // Google's own encodings, re-derived for this provider
+  "latitudeE7", "longitudeE7", "latE7", "lngE7", "lonE7",
+  "startLatitudeE7", "startLongitudeE7", "endLatitudeE7", "endLongitudeE7",
+  "lat_deg", "lng_deg", "lon_deg", "latitudeDegrees", "longitudeDegrees"
+];
 
 /**
- * Measured answer to "does this build actually redact GPS by default?".
+ * Location CONTAINER keys. Dropped as a whole object — never key-by-key — whenever they hold
+ * a place record, so a coordinate spelled in a way this list never anticipated still dies with
+ * its container, together with the address/city/placeId siblings that localise just as well.
+ *
+ * Conditional on the value on purpose: a container holding scalars is a label, not a place
+ * (`location: ["gym", "home"]` survives; `location: { latitudeE7 }` does not).
+ */
+export const GPS_REDACTED_CONTAINER_KEYS: readonly string[] = [
+  "location", "locations", "geoLocation", "geoLocations", "geo", "geoJson",
+  "route", "routes", "position", "positions", "waypoint", "waypoints",
+  "trackPoint", "trackPoints", "placeVisit"
+];
+
+const LOCATION_LEAF_LOOKUP = new Set(GPS_REDACTED_KEYS.map(normalizeKey));
+const LOCATION_CONTAINER_LOOKUP = new Set(GPS_REDACTED_CONTAINER_KEYS.map(normalizeKey));
+
+/** True for a leaf key that carries a coordinate component. */
+export function isLocationLeafKey(key: string): boolean {
+  return isGpsKey(key) || LOCATION_LEAF_LOOKUP.has(normalizeKey(key));
+}
+
+/** True for a key that names a place record (see GPS_REDACTED_CONTAINER_KEYS). */
+export function isLocationContainerKey(key: string): boolean {
+  return LOCATION_CONTAINER_LOOKUP.has(normalizeKey(key));
+}
+
+/** A place record is an object, or an array containing objects. Scalars are labels. */
+function isPlaceRecord(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some((item) => Boolean(item) && typeof item === "object");
+  return isObject(value);
+}
+
+/** A key is dropped when it is an identity/secret field OR a coordinate-bearing leaf. */
+export function isSensitiveKey(key: string): boolean {
+  return SENSITIVE_KEYS.has(key) || isLocationLeafKey(key);
+}
+
+/** Drop decision for a key/value pair: leaf keys unconditionally, containers when they hold a place. */
+export function isSensitiveEntry(key: string, value: unknown): boolean {
+  return isSensitiveKey(key) || (isLocationContainerKey(key) && isPlaceRecord(value));
+}
+
+/**
+ * Obviously fake sentinels carried by the self-check probe. Coordinates are scanned by VALUE as
+ * well as by key, because a scan over key NAMES alone stays green through any refactor that
+ * renames the key while still emitting the number.
+ */
+const SELF_CHECK_COORDS = [
+  -11.111111, -22.222222, -33.333333, -85.858585, -74.747474, -857474747, -747474747
+];
+/** Non-location metric that MUST survive: a build that redacted everything would otherwise pass. */
+const SELF_CHECK_METRIC = 4242;
+
+/**
+ * Measured answer to "does this build actually redact location by default?".
  * The privacy audit reports this instead of a hardcoded literal: a synthetic record carrying
- * every claimed location key is pushed through the two non-raw modes and the result is
- * scanned. If a future refactor stops redacting, the audit says so instead of lying.
+ * leaf keys, Google's E7 encoding and nested place containers is pushed through the two non-raw
+ * modes, and the output is scanned for surviving keys AND surviving coordinate values.
  */
 export function gpsRedactionSelfCheck(): boolean {
   const probe = {
     startLatitude: -11.111111,
     startLongitude: -22.222222,
+    location: { latitudeE7: -857474747, longitudeE7: -747474747, address: "Rua Sintetica 0", city: "Cidade Sintetica" },
+    geoLocation: { lat_deg: -85.858585, lng_deg: -74.747474 },
+    route: [{ position: { latitudeE7: -857474747, longitudeE7: -747474747 } }],
     exercise: {
       lat: -11.111111, lon: -22.222222, lng: -33.333333,
       coordinates: [-11.111111, -22.222222],
       locations: [{ latitude: -11.111111, longitude: -22.222222 }],
-      steps: 10
+      steps: SELF_CHECK_METRIC
     }
   };
   const endpoint = "/v4/users/me/dataTypes/exercise/dataPoints";
-  return (["structured", "summary"] as const).every(
-    (mode) => !containsGpsKey(applyPrivacy(endpoint, probe, mode))
+  return (["structured", "summary"] as const).every((mode) => {
+    const output = applyPrivacy(endpoint, probe, mode);
+    return !containsLocationKey(output) && !containsCoordinateValue(output) && containsMetric(output);
+  });
+}
+
+function containsLocationKey(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(containsLocationKey);
+  if (!isObject(value)) return false;
+  return Object.entries(value).some(
+    ([key, child]) => isLocationLeafKey(key) || isLocationContainerKey(key) || containsLocationKey(child)
   );
 }
 
-function containsGpsKey(value: unknown): boolean {
-  if (Array.isArray(value)) return value.some(containsGpsKey);
-  if (!isObject(value)) return false;
-  return Object.entries(value).some(([key, child]) => isGpsKey(key) || containsGpsKey(child));
+function containsCoordinateValue(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(containsCoordinateValue);
+  if (isObject(value)) return Object.values(value).some(containsCoordinateValue);
+  if (typeof value === "number") return SELF_CHECK_COORDS.includes(value);
+  if (typeof value === "string") return SELF_CHECK_COORDS.some((coord) => value.includes(String(coord)));
+  return false;
+}
+
+function containsMetric(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(containsMetric);
+  if (isObject(value)) return Object.values(value).some(containsMetric);
+  if (typeof value === "number") return value === SELF_CHECK_METRIC;
+  return typeof value === "string" && value === String(SELF_CHECK_METRIC);
 }

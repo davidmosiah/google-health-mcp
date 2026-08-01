@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildPrivacyAudit } from '../dist/services/audit.js';
 import { GoogleHealthCache } from '../dist/services/cache.js';
-import { applyPrivacy, normalizeStreams } from '../dist/services/privacy.js';
+import { applyPrivacy } from '../dist/services/privacy.js';
 import { redactErrorMessage, redactSensitive } from '../dist/services/redaction.js';
 
 const dataPoint = {
@@ -33,8 +33,9 @@ assert.equal(summary.name, undefined);
 const raw = applyPrivacy('/v4/users/me/dataTypes/steps/dataPoints', dataPoint, 'raw');
 assert.equal(raw.access_token, 'secret');
 
-const streams = normalizeStreams({ heartrate: { data: [120, 121] }, latlng: { data: [[1, 2]] } }, 'structured', false);
-assert.deepEqual(streams.heartrate.data, [120, 121]);
+// normalizeStreams() was removed in 0.7.0: "streams" is a Strava concept with no Google Health
+// v4 endpoint, no call site in src/, and a dead includeGps parameter. The two asserts that
+// covered it here and in gps-redaction-test.mjs were testing code no tool could ever execute.
 
 assert.equal(redactSensitive({ access_token: 'abc', nested: { client_secret: 'def' } }).access_token, '[REDACTED]');
 assert.match(redactErrorMessage('Authorization: Bearer abc.def.ghi'), /REDACTED/);

@@ -1,3 +1,70 @@
+## 0.7.0 - 2026-08-01
+
+### Security (round 2: the key list in 0.6.0 was still Strava's, one layer up)
+
+- **The list an agent could trust had no entry for Google's own coordinate encoding.** 0.6.0
+  fixed the drop-list by adopting `delx-mcp-kit`'s `isGpsKey()` — but that shared list was
+  itself derived from Strava's field names, so `latitudeE7` and `longitudeE7` survived
+  `structured` and `summary`. That is the canonical way *Google* writes a coordinate (integer
+  degrees × 1e7, as in Location History and the Maps APIs): the single most predictable
+  location field name for this provider was the one missing. The diagnosis in 0.6.0 was
+  "somebody copied the policy from Strava without re-deriving the keys for the new provider";
+  the fix then adopted a list that was still Strava's. Corrected by re-deriving for Google:
+  `latitudeE7`, `longitudeE7`, `latE7`, `lngE7`, `lonE7`, the `start*`/`end*` E7 forms,
+  `lat_deg`, `lng_deg`, `lon_deg`, `latitudeDegrees`, `longitudeDegrees`.
+- **Coordinates hid one level down, inside containers nobody was dropping.** `location`,
+  `geoLocation`, `route`, `position`, `trackPoints`, `placeVisit` and friends walked through
+  untouched, carrying coordinates and the `address`/`city`/`placeId` siblings that localize
+  just as well. Agents now get **whole-object** redaction of a place record, so a coordinate
+  spelled in a way the leaf list never anticipated still dies with its container. Conditional
+  on the value: a container holding only scalars is a label, not a place — `location: ["gym",
+  "home"]` survives, `location: { latitudeE7: … }` does not.
+- **Key matching now ignores case, `_` and `-`.** `latitude_e7`, `latitudeE7` and `LATITUDEE7`
+  are one key. Spelling drift was a live source of silent misses.
+- **`gpsRedactionSelfCheck()` scanned key NAMES only, so a rename kept it green.** It now
+  scans the output for the probe's sentinel coordinate VALUES as well, and additionally
+  requires a non-location metric to survive — otherwise a build that redacted everything
+  would have reported a perfect score.
+
+### Added — the gate that matters for anyone reading the docs
+
+- **`npm run test:redaction-docs`: a gate that proves the code cannot prove the prose next to
+  it.** 0.6.0 shipped a behavioural GPS gate and, in the same commit, a README enumerating
+  20 keys against an export of 21 — `activities-tracker-gps` was enforced but never
+  published, and nothing compared the two. The published lists in README.md and SECURITY.md
+  now live inside `<!-- gps-redacted-keys -->` / `<!-- gps-redacted-containers -->` markers and
+  are compared, in order, against `GPS_REDACTED_KEYS`, `GPS_REDACTED_CONTAINER_KEYS` and what
+  `google_health_privacy_audit` actually serves. A promise wider than the code, a code wider
+  than the promise, or a deleted marker block all fail the build.
+- `google_health_privacy_audit` gains `gps_redacted_container_keys` (output-contract addition
+  → minor bump) and publishes its two limits as notes rather than implying total coverage.
+
+### Documented limits (stated instead of implied)
+
+- **`altitude` and `elevation` are deliberately NOT redacted as location.** `altitude` is an
+  official Google Health v4 data type (`activity_and_fitness`); the obvious fix — adding it to
+  the drop-list — would have deleted a real metric from every `altitude` data point, and an
+  altitude does not localize anyone on its own. Altitude *inside* a redacted place container
+  is dropped with the container. There is a regression assert for this.
+- **`summary` mode flattens numeric leaves up to depth 2**, so it promotes values rather than
+  hiding them. It strips before summarizing and can never be less restrictive than
+  `structured`, but any coordinate key outside the published lists would be promoted. The key
+  list is the boundary; the mode is not.
+
+### Removed
+
+- `normalizeStreams()`. "Streams" is a Strava concept with no Google Health v4 endpoint: the
+  function had no call site anywhere in `src/`, and its `includeGps` parameter only deleted
+  `dataSource`. Two asserts in the 0.6.0 fixture were covering code no tool could execute.
+  Function and asserts removed together.
+
+### Scope, honestly
+
+Unchanged from 0.6.0: Google Health API v4 documents no location or route data type, so there
+is no upstream source of coordinates and nothing was leaking in practice. Severity is low.
+What changed is that the published promise now matches the enforced list for *this* provider,
+and drift between the two is a build failure.
+
 ## 0.6.0 - 2026-08-01
 
 ### Security (hardening + honesty, not a fix for an active leak)
