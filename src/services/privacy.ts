@@ -1,6 +1,7 @@
 import type { PrivacyMode, GoogleHealthConfig } from "../types.js";
 import {
   resolvePrivacyMode as resolvePrivacyModeKit,
+  isGpsKey,
   type PrivacyEscalationOpts,
   type PrivacyMode as KitPrivacyMode,
 } from "delx-mcp-kit";
@@ -47,7 +48,10 @@ export function normalizeRecord(endpoint: string, record: unknown, mode: Privacy
   if (endpoint.includes("/identity")) return normalizeIdentity(record, mode);
   if (endpoint.includes("/profile")) return normalizeProfile(record, mode);
   if (endpoint.includes("/settings")) return normalizeSettings(record);
-  if (mode === "summary") return summarizeGoogleHealthRecord(record);
+  // Summary must never be *less* restrictive than structured: strip first, then summarize.
+  // Summarizing the raw record let collectNumbers()/inferDataType() re-promote dropped
+  // location values to the top level of the response.
+  if (mode === "summary") return summarizeGoogleHealthRecord(removeSensitive(record));
   return removeSensitiveDeep(record);
 }
 
@@ -114,6 +118,9 @@ function summarizeValues(record: Record<string, unknown>): Record<string, unknow
 function collectNumbers(record: Record<string, unknown>, out: Record<string, unknown>, depth: number): void {
   if (depth > 2) return;
   for (const [key, value] of Object.entries(record)) {
+    // Same drop-list as removeSensitiveDeep. Without this, a caller that summarizes an
+    // unstripped record would flatten coordinates into the summary payload.
+    if (isSensitiveKey(key)) continue;
     if (typeof value === "number" || typeof value === "string" && /^-?\d+(\.\d+)?$/.test(value)) out[key] = value;
     else if (isObject(value)) collectNumbers(value, out, depth + 1);
   }
@@ -136,7 +143,7 @@ function removeSensitiveDeep(value: unknown): unknown {
   if (!isObject(value)) return value;
   const clone: Record<string, unknown> = {};
   for (const [key, child] of Object.entries(value)) {
-    if (SENSITIVE_KEYS.has(key)) continue;
+    if (isSensitiveKey(key)) continue;
     clone[key] = removeSensitiveDeep(child);
   }
   return clone;
@@ -146,8 +153,56 @@ function removeSensitive(record: Record<string, unknown>): Record<string, unknow
   return removeSensitiveDeep(record) as Record<string, unknown>;
 }
 
+// Identity / secret-bearing keys owned by this server. Location keys are NOT listed here:
+// they come from delx-mcp-kit's isGpsKey(), which is the single source of truth for what
+// "GPS redaction" means across the Delx wellness servers (latitude, longitude, lat, lon,
+// lng, coordinates, startLatitude/startLongitude, latlng, map, polyline, ...).
 const SENSITIVE_KEYS = new Set([
   "email", "fullName", "firstName", "lastName", "avatar", "photoUrl",
   "access_token", "refresh_token", "id_token", "authorization", "legacyUserId",
-  "latlng", "gps", "map", "polyline", "summary_polyline", "tcxLink"
+  "tcxLink"
 ]);
+
+/** A key is dropped when it is an identity/secret field OR any location field the kit knows. */
+export function isSensitiveKey(key: string): boolean {
+  return SENSITIVE_KEYS.has(key) || isGpsKey(key);
+}
+
+/**
+ * Location keys this server claims to redact. Enumerated from delx-mcp-kit's isGpsKey()
+ * so the public claim can never drift from the code that enforces it.
+ */
+export const GPS_REDACTED_KEYS: readonly string[] = [
+  "startLatitude", "startLongitude", "start_latlng", "endLatitude", "endLongitude", "end_latlng",
+  "latitude", "longitude", "lat", "lon", "lng", "latlng", "coordinates", "coordinate",
+  "gps", "gpx", "geoPolylineDTO", "map", "polyline", "summary_polyline", "activities-tracker-gps"
+].filter((key) => isGpsKey(key));
+
+/**
+ * Measured answer to "does this build actually redact GPS by default?".
+ * The privacy audit reports this instead of a hardcoded literal: a synthetic record carrying
+ * every claimed location key is pushed through the two non-raw modes and the result is
+ * scanned. If a future refactor stops redacting, the audit says so instead of lying.
+ */
+export function gpsRedactionSelfCheck(): boolean {
+  const probe = {
+    startLatitude: -11.111111,
+    startLongitude: -22.222222,
+    exercise: {
+      lat: -11.111111, lon: -22.222222, lng: -33.333333,
+      coordinates: [-11.111111, -22.222222],
+      locations: [{ latitude: -11.111111, longitude: -22.222222 }],
+      steps: 10
+    }
+  };
+  const endpoint = "/v4/users/me/dataTypes/exercise/dataPoints";
+  return (["structured", "summary"] as const).every(
+    (mode) => !containsGpsKey(applyPrivacy(endpoint, probe, mode))
+  );
+}
+
+function containsGpsKey(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(containsGpsKey);
+  if (!isObject(value)) return false;
+  return Object.entries(value).some(([key, child]) => isGpsKey(key) || containsGpsKey(child));
+}

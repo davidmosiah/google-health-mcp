@@ -125,7 +125,8 @@ The full tool catalog — Google Health API methods, agent manifest, diagnostics
 - Secrets can live in `~/.google-health-mcp/config.json` or `GOOGLE_HEALTH_*` environment variables.
 - Tools never return access tokens, refresh tokens or client secrets.
 - `GOOGLE_HEALTH_PRIVACY_MODE=structured` is the default; `raw` mode is explicit and should be used only for debugging or deep analysis.
-- Structured mode preserves complete upstream physiological fields and future v4 additions while removing identity, GPS and secret-bearing values.
+- Structured mode preserves complete upstream physiological fields and future v4 additions while removing identity, location and secret-bearing values.
+- "Location redaction" means a concrete key list, not a slogan: `startLatitude`, `startLongitude`, `endLatitude`, `endLongitude`, `latitude`, `longitude`, `lat`, `lon`, `lng`, `latlng`, `start_latlng`, `end_latlng`, `coordinates`, `coordinate`, `gps`, `gpx`, `geoPolylineDTO`, `map`, `polyline`, `summary_polyline`. `google_health_privacy_audit` returns the live list in `gps_redacted_keys`, and `gps_redaction_default` is measured at call time by pushing a synthetic record through both non-raw modes — it is not a hardcoded `true`. Google Health API v4 does not currently document a location/route data type, so this is a forward-compatible guard rather than a patch for an observed leak.
 - Daily rollups use validated civil `YYYY-MM-DD` ranges; general rollups preserve exact timezone-aware ISO date-times. Invalid or reversed ranges fail before HTTP.
 - `support --redacted` prints a copy-paste support bundle for GitHub issues without tokens, secrets, local paths or health measurements.
 - `support --feedback --json` prints an anonymous setup-feedback bundle for beta testers and MCP client reports.

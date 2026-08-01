@@ -15,7 +15,12 @@ Report security issues through GitHub issues if they do not contain secrets. Do 
 - Tokens stay local under `~/.google-health-mcp/tokens.json`.
 - Local config is written with `0600` permissions where supported.
 - The server is read-only by default.
-- GPS/map data is redacted unless explicitly requested.
+- GPS/map data is redacted in `summary` and `structured` modes; `raw` is the only way to
+  see it and requires `explicit_user_intent=true`. The claim is backed by a named key list
+  (`gps_redacted_keys` in `google_health_privacy_audit`) and by a behavioural gate
+  (`npm run test:gps-redaction`), not by a hardcoded flag. Google Health API v4 does not
+  currently document a location/route data type, so treat this as a forward-compatible
+  guard rather than protection against a known upstream leak.
 
 ## Trust Boundary
 

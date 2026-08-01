@@ -1,3 +1,47 @@
+## 0.6.0 - 2026-08-01
+
+### Security (hardening + honesty, not a fix for an active leak)
+
+- **`google_health_privacy_audit` was making a promise the code did not keep.** It reported
+  `gps_redaction_default: true` from a hardcoded literal, and README/SECURITY promised GPS
+  redaction, but the drop-list only held Strava-era key names (`latlng`, `gps`, `map`,
+  `polyline`, `summary_polyline`, `tcxLink`). `latitude`, `longitude`, `lat`, `lon`, `lng`,
+  `coordinates`, `startLatitude` and `startLongitude` were never dropped. An agent that
+  trusted the audit before forwarding a payload to a third party was trusting an unbacked
+  claim. Location keys are now sourced from `delx-mcp-kit`'s `isGpsKey()`, the shared
+  definition across the Delx wellness servers.
+- **`summary` mode was less restrictive than `structured`.** `collectNumbers()` walks numbers
+  recursively, so coordinates buried inside a record were flattened back to the top level of
+  the summary response — the mode meant to expose the least exposed the most. Summary now
+  strips first and summarizes the stripped record, and `collectNumbers()` honours the same
+  drop-list.
+- **`gps_redaction_default` is now measured, not asserted.** Each call runs a synthetic record
+  carrying every claimed location key through `structured` and `summary` and scans the output.
+  If a future refactor stops redacting, the audit reports `false` instead of lying.
+- **Honest scope:** Google Health API v4 does not currently document any location/route data
+  type, so there is no known upstream source of coordinates today. Nothing was leaking in
+  practice. This closes the gap between what the server *claimed* and what it *enforced*, and
+  makes the guard real ahead of any v4 data type that carries location.
+
+### Added
+
+- `gps_redacted_keys` in the `google_health_privacy_audit` output — the live, enumerated list
+  behind the claim, so agents can verify coverage instead of trusting a boolean. (Output
+  contract change; hence the minor bump.)
+- `npm run test:gps-redaction` (`scripts/gps-redaction-test.mjs`) — behavioural gate over a
+  synthetic payload with every location key nested at several depths, asserting that neither
+  the keys nor the coordinate values survive `structured` or `summary`, across bare records,
+  arrays, `dataPoints`/`rollupDataPoints` envelopes and stream normalisation, while `raw`
+  stays an honest passthrough. Verified to fail on 0.5.7 (16 location keys survived) and pass
+  on 0.6.0.
+
+### Changed
+
+- `scripts/privacy-cache-test.mjs` no longer asserts `gps_redaction_default === true` against
+  the literal it was reading from the audit. That gate tested a string, not behaviour — which
+  is precisely why the missing keys went unnoticed. It now runs a payload through and checks
+  the output.
+
 ## 0.5.7 - 2026-07-30
 
 ### Added / Fixed

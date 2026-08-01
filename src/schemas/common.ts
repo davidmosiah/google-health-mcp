@@ -220,6 +220,7 @@ export const PrivacyAuditOutputSchema = z.object({
   privacy_mode_default: PrivacyModeValueSchema,
   raw_payloads_opt_in: z.boolean(),
   gps_redaction_default: z.boolean(),
+  gps_redacted_keys: z.array(z.string()),
   cache_enabled: z.boolean(),
   cache_path: z.string(),
   token_path: z.string(),

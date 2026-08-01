@@ -39,7 +39,16 @@ assert.deepEqual(streams.heartrate.data, [120, 121]);
 assert.equal(redactSensitive({ access_token: 'abc', nested: { client_secret: 'def' } }).access_token, '[REDACTED]');
 assert.match(redactErrorMessage('Authorization: Bearer abc.def.ghi'), /REDACTED/);
 assert.equal(buildPrivacyAudit().unofficial, true);
-assert.equal(buildPrivacyAudit().gps_redaction_default, true);
+// gps_redaction_default is now MEASURED by the server (see privacy.gpsRedactionSelfCheck), and
+// the behavioural proof lives in scripts/gps-redaction-test.mjs. Asserting the literal here
+// tested the string, not the behaviour — that is exactly how the drop-list stayed missing
+// latitude/longitude/lat/lon/lng/coordinates while the audit reported redaction as active.
+const gpsProbe = applyPrivacy('/v4/users/me/dataTypes/exercise/dataPoints', {
+  startLatitude: -11.111111,
+  exercise: { lat: -11.111111, lng: -22.222222, locations: [{ latitude: -33.333333 }], steps: 7 }
+}, 'structured');
+assert.equal(JSON.stringify(gpsProbe).includes('11.111111'), false, 'structured leaked a coordinate');
+assert.equal(gpsProbe.exercise.steps, 7);
 
 const dir = mkdtempSync(join(tmpdir(), 'google-health-mcp-cache-'));
 let cache;
