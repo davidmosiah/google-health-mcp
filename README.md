@@ -42,11 +42,11 @@ If you have Fitbit, Pixel Watch, Android health data or Google Health API v4
 access, the most useful help is a redacted coverage report:
 
 ```bash
-npx -y google-health-mcp-unofficial@0.5.4 coverage --live --json
+npx -y google-health-mcp-unofficial@0.7.3 coverage --live --json
 ```
 
 Review the output, remove anything you do not want public, then post the report
-to [issue #3](https://github.com/davidmosiah/google-health-mcp/issues/3). The
+to [issue #21](https://github.com/davidmosiah/google-health-mcp/issues/21). The
 command is read-only and is designed to omit OAuth secrets, local paths and raw
 health measurements. A static preflight is available before OAuth with
 `coverage --json`.
@@ -112,7 +112,7 @@ Start here:
 
 - `google_health_connection_status` — local config, token, scope and client readiness
 - `google_health_data_inventory` — supported domains, scopes, data type naming and agent flow
-- `google_health_data_type_coverage` — static coverage plan, or explicit live read-only validation for issue #3
+- `google_health_data_type_coverage` — static coverage plan, or explicit live read-only validation for issue #21
 - `google_health_daily_summary` — daily beta summary from rollups and reconciled streams
 - `google_health_weekly_summary` — weekly beta review
 - `google_health_privacy_audit` — what is stored locally and what is sent to Google
@@ -191,8 +191,8 @@ If you can test with a real account:
 
 - Run `npx -y google-health-mcp-unofficial doctor` and confirm the OAuth flow is clear.
 - Run `npx -y google-health-mcp-unofficial support --feedback --json` and paste the anonymous bundle into issue #4.
-- Run `npx -y google-health-mcp-unofficial coverage --json` for the static issue #3 plan.
-- After OAuth, run `npx -y google-health-mcp-unofficial coverage --live --json` and paste the reviewed, redacted report into issue #3.
+- Run `npx -y google-health-mcp-unofficial coverage --json` for the static issue #21 plan.
+- After OAuth, run `npx -y google-health-mcp-unofficial coverage --live --json` and paste the reviewed, redacted report into issue #21.
 - Try `google_health_connection_status`, `google_health_data_inventory` and `google_health_daily_summary` from your MCP client.
 - Open an issue for missing data types, confusing setup steps, client-specific friction or privacy concerns.
 - Do **not** paste OAuth tokens, client secrets, local paths or personal health measurements into public issues.
@@ -200,7 +200,7 @@ If you can test with a real account:
 Useful links:
 
 - [Beta testers wanted](https://github.com/davidmosiah/google-health-mcp/issues/2)
-- [Data coverage validation](https://github.com/davidmosiah/google-health-mcp/issues/3)
+- [Data coverage validation](https://github.com/davidmosiah/google-health-mcp/issues/21)
 - [MCP client setup feedback](https://github.com/davidmosiah/google-health-mcp/issues/4)
 - [Beta feedback guide](docs/beta-feedback.md)
 - [Data coverage harness](docs/data-coverage.md)
@@ -251,7 +251,7 @@ If setup gets stuck:
 ```bash
 npx -y google-health-mcp-unofficial doctor --fix       # repairs local config/token permissions (chmod 600 where supported)
 npx -y google-health-mcp-unofficial doctor --live      # calls safe identity/profile/settings endpoints to prove the API is reachable
-npx -y google-health-mcp-unofficial coverage --live --json # redacted read-only data-type coverage for issue #3
+npx -y google-health-mcp-unofficial coverage --live --json # redacted read-only data-type coverage for issue #21
 npx -y google-health-mcp-unofficial support --redacted # copy-paste support bundle, no tokens/secrets/measurements
 npx -y google-health-mcp-unofficial support --feedback --json # anonymous setup feedback for issue #4
 ```

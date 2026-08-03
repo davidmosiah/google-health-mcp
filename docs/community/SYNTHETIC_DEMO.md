@@ -5,7 +5,7 @@ Agents and contributors can exercise **contract-shaped** samples without a Googl
 ## CLI (no credentials)
 
 ```bash
-npx -y google-health-mcp-unofficial@0.5.5 demo
+npx -y google-health-mcp-unofficial@0.7.3 demo
 ```
 
 Prints JSON with `is_demo: true` and sample shapes for `google_health_daily_summary`, `google_health_wellness_context`, and `google_health_daily_rollup`.
@@ -13,8 +13,8 @@ Prints JSON with `is_demo: true` and sample shapes for `google_health_daily_summ
 Also OAuth-free:
 
 ```bash
-npx -y google-health-mcp-unofficial@0.5.5 doctor --json      # setup status
-npx -y google-health-mcp-unofficial@0.5.5 coverage --json    # static data-type plan
+npx -y google-health-mcp-unofficial@0.7.3 doctor --json      # setup status
+npx -y google-health-mcp-unofficial@0.7.3 coverage --json    # static data-type plan
 ```
 
 ## MCP tool (same payload)
@@ -24,8 +24,8 @@ Call tool **`google_health_demo`** from any MCP client after installing this pac
 ## Live coverage (needs real OAuth)
 
 ```bash
-npx -y google-health-mcp-unofficial@0.5.5 coverage --json           # preflight plan
-npx -y google-health-mcp-unofficial@0.5.5 coverage --live --json    # after auth
+npx -y google-health-mcp-unofficial@0.7.3 coverage --json           # preflight plan
+npx -y google-health-mcp-unofficial@0.7.3 coverage --live --json    # after auth
 ```
 
 Never commit live coverage output with personal measurements.
