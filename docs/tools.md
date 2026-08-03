@@ -49,12 +49,18 @@ weight
 exercise
 ```
 
-Filter expressions use snake case:
+Filter expressions use snake case, and the field depends on the data-type kind
+(see the official [list filter reference](https://developers.google.com/health/reference/rest/v4/users.dataTypes.dataPoints/list)):
 
 ```text
+# Interval
 steps.interval.civil_start_time >= "2026-05-07"
+# Sample
 heart_rate.sample_time.physical_time >= "2026-05-07T00:00:00Z"
-sleep.interval.civil_start_time >= "2026-05-07"
+# Daily summary (NOT interval.civil_start_time)
+daily_resting_heart_rate.date >= "2026-05-07" AND daily_resting_heart_rate.date < "2026-05-08"
+# Sleep session (civil_end_time, not civil_start_time)
+sleep.interval.civil_end_time >= "2026-05-07" AND sleep.interval.civil_end_time < "2026-05-08"
 ```
 
 Source families supported by the API:

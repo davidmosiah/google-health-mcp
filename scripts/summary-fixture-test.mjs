@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { buildDailySummary, buildWeeklySummary } from '../dist/services/summary.js';
 import { buildWellnessContext } from '../dist/services/context.js';
 
+const reconcileCalls = [];
 const fakeClient = {
   async dailyRollup({ dataType }) {
     if (dataType === 'steps') return { rollupDataPoints: [{ steps: { countSum: '9000' } }] };
@@ -11,7 +12,9 @@ const fakeClient = {
     if (dataType === 'weight') return { rollupDataPoints: [{ weight: { weightGramsAvg: 80000 } }] };
     throw new Error(`unexpected rollup ${dataType}`);
   },
-  async reconcileDataPoints({ dataType }) {
+  async reconcileDataPoints(query) {
+    reconcileCalls.push(query);
+    const { dataType } = query;
     if (dataType === 'daily-resting-heart-rate') {
       return { dataPoints: [{ dailyRestingHeartRate: { beatsPerMinute: 58 } }] };
     }
@@ -25,7 +28,7 @@ const fakeClient = {
   }
 };
 
-const daily = await buildDailySummary(fakeClient, { date: 'today', timezone: 'UTC' });
+const daily = await buildDailySummary(fakeClient, { date: '2026-08-02', timezone: 'UTC' });
 assert.equal(daily.kind, 'daily_summary');
 assert.equal(daily.source, 'google_health');
 assert.equal(daily.scorecard.steps, 9000);
@@ -35,6 +38,16 @@ assert.equal(daily.scorecard.calories_out, 2400);
 assert.equal(daily.scorecard.active_zone_minutes, 60);
 assert.equal(daily.scorecard.weight_kg, 80);
 assert.ok(daily.diagnostic.action_candidates.length >= 2);
+
+// issue #19 / @maxgow on #3: daily summary must use kind-correct filter members
+const byType = Object.fromEntries(reconcileCalls.map((call) => [call.dataType, call.filter]));
+assert.match(byType['daily-resting-heart-rate'], /daily_resting_heart_rate\.date >= "2026-08-02"/);
+assert.match(byType['daily-resting-heart-rate'], /daily_resting_heart_rate\.date < "2026-08-03"/);
+assert.doesNotMatch(byType['daily-resting-heart-rate'], /civil_start_time/);
+assert.match(byType['daily-heart-rate-variability'], /daily_heart_rate_variability\.date >= "2026-08-02"/);
+assert.doesNotMatch(byType['daily-heart-rate-variability'], /civil_start_time/);
+assert.match(byType.sleep, /sleep\.interval\.civil_end_time >= "2026-08-02"/);
+assert.doesNotMatch(byType.sleep, /civil_start_time/);
 
 const weekly = await buildWeeklySummary(fakeClient, { days: 7, compare_days: 7, timezone: 'UTC' });
 assert.equal(weekly.kind, 'weekly_summary');

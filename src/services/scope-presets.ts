@@ -1,4 +1,9 @@
-import { DEFAULT_SCOPES, GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE } from "../constants.js";
+import {
+  DEFAULT_SCOPES,
+  GOOGLE_HEALTH_ECG_READONLY_SCOPE,
+  GOOGLE_HEALTH_IRN_READONLY_SCOPE,
+  GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE
+} from "../constants.js";
 
 export const SCOPE_PRESETS = {
   basic: [
@@ -17,6 +22,13 @@ export const SCOPE_PRESETS = {
     "https://www.googleapis.com/auth/googlehealth.sleep.readonly"
   ],
   full: DEFAULT_SCOPES,
+  // Opt-in clinical reads. ECG + irregular-rhythm-notification need dedicated scopes
+  // that are intentionally outside `full` (sensitive consent surface). Issue #20.
+  clinical: [
+    ...DEFAULT_SCOPES,
+    GOOGLE_HEALTH_ECG_READONLY_SCOPE,
+    GOOGLE_HEALTH_IRN_READONLY_SCOPE
+  ],
   // Opt-in WRITE preset: read-only profile/settings/nutrition + the nutrition write scope.
   // The only preset that grants any write capability. All others stay read-only.
   "nutrition-write": [
@@ -29,9 +41,13 @@ export const SCOPE_PRESETS = {
 
 export type ScopePresetName = keyof typeof SCOPE_PRESETS;
 
+const SCOPE_PRESET_NAMES = Object.keys(SCOPE_PRESETS) as ScopePresetName[];
+
 export function parseScopePreset(value: string): ScopePresetName {
-  if (value === "basic" || value === "activity" || value === "sleep" || value === "full" || value === "nutrition-write") return value;
-  throw new Error("Scope preset must be basic, activity, sleep, full or nutrition-write.");
+  if ((SCOPE_PRESET_NAMES as string[]).includes(value)) return value as ScopePresetName;
+  throw new Error(
+    `Scope preset must be one of: ${SCOPE_PRESET_NAMES.join(", ")}.`
+  );
 }
 
 export function parseScopeList(value: string): string[] {

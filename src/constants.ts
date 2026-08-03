@@ -1,5 +1,5 @@
 export const SERVER_NAME = "google-health-mcp-server";
-export const SERVER_VERSION = "0.7.1";
+export const SERVER_VERSION = "0.7.2";
 export const NPM_PACKAGE_NAME = "google-health-mcp-unofficial";
 export const PINNED_NPM_PACKAGE = `${NPM_PACKAGE_NAME}@${SERVER_VERSION}`;
 
@@ -24,6 +24,15 @@ export const DEFAULT_SCOPES = [
 export const GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE =
   "https://www.googleapis.com/auth/googlehealth.nutrition.writeonly";
 
+// Opt-in sensitive clinical read scopes. Excluded from DEFAULT_SCOPES / `full` so agents
+// never silently expand consent. Documented at https://developers.google.com/health/scopes
+// (last checked 2026-07-31). External confirmation of MISSING_OAUTH_SCOPE under `full`:
+// issue #3 report by @maxgow / follow-up #20.
+export const GOOGLE_HEALTH_ECG_READONLY_SCOPE =
+  "https://www.googleapis.com/auth/googlehealth.ecg.readonly";
+export const GOOGLE_HEALTH_IRN_READONLY_SCOPE =
+  "https://www.googleapis.com/auth/googlehealth.irn.readonly";
+
 export const DEFAULT_LIMIT = 100;
 export const MAX_GOOGLE_HEALTH_LIMIT = 10_000;
 export const DEFAULT_MAX_PAGES = 1;
@@ -32,13 +41,17 @@ export const MAX_PAGES = 10;
 // Google Health dailyRollUp validates: window_size_days * page_size <= maxDurationDays
 // per data type (see INVALID_ROLLUP_QUERY_DURATION). Only confirmed caps live here;
 // unknown types keep the generic DEFAULT_LIMIT and are not clamped.
-// Confirmed live by external report: issue #15 (nutrition-log maxDurationDays=90).
+// Confirmed live:
+// - issue #15 (nutrition-log maxDurationDays=90)
+// - issue #18 / @maxgow on #3 (total-calories maxDurationDays=14)
 export const DAILY_ROLLUP_MAX_DURATION_DAYS: Readonly<Record<string, number>> = {
-  "nutrition-log": 90
+  "nutrition-log": 90,
+  "total-calories": 14
 };
 
-// Safer default for daily_rollup tool input when agents omit page_size. Still below the
-// tightest known cap (90) so window_size_days=1 * page_size works for nutrition-log.
+// Safer default for daily_rollup tool input when agents omit page_size. Below the
+// nutrition-log cap (90). Tighter per-type caps (e.g. total-calories=14) are applied
+// by resolveDailyRollupPageSize at request time.
 export const DEFAULT_DAILY_ROLLUP_PAGE_SIZE = 90;
 
 export const GOOGLE_HEALTH_DATA_SOURCE_FAMILIES = [

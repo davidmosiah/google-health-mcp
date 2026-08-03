@@ -1,3 +1,25 @@
+## 0.7.2 - 2026-08-03
+
+### Fixed (from external real-account coverage report — @maxgow on #3)
+
+- **`total-calories` dailyRollUp clamp (issue #18).** Google enforces
+  `window_size_days * page_size ≤ 14` for this type. Same pattern as nutrition-log
+  (#15): `DAILY_ROLLUP_MAX_DURATION_DAYS["total-calories"] = 14` and
+  `resolveDailyRollupPageSize` clamps instead of forwarding
+  `INVALID_ROLLUP_QUERY_DURATION`.
+- **`daily_summary` filter members (issue #19).** Resting HR and daily HRV now
+  filter on `{type}.date`; sleep uses `sleep.interval.civil_end_time`. The old
+  `interval.civil_start_time` path was rejected live with
+  `INVALID_DATA_POINT_FILTER_DATA_TYPE_MEMBER`. Docs and inventory guidance updated
+  to match the official list filter map.
+
+### Added
+
+- **Opt-in `clinical` scope preset (issue #20).** `full` stays unchanged.
+  `clinical` = `full` + `googlehealth.ecg.readonly` + `googlehealth.irn.readonly`
+  so ECG / irregular-rhythm-notification no longer fail with `MISSING_OAUTH_SCOPE`
+  after an explicit re-auth. Sensitive scopes are never added silently.
+
 ## 0.7.1 - 2026-08-01
 
 ### Security (round 3: the *limits* printed next to the key list were prose nobody tested)

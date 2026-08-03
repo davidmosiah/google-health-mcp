@@ -1,12 +1,24 @@
 # Google Health Data Coverage
 
-Use this when contributing to
-[issue #3](https://github.com/davidmosiah/google-health-mcp/issues/3).
+Issue [#3](https://github.com/davidmosiah/google-health-mcp/issues/3) closed
+2026-08-03 after the first external redacted live report (@maxgow). Further
+reports are still welcome on follow-up issues and on
+[#2](https://github.com/davidmosiah/google-health-mcp/issues/2).
 
 The connector ships a local catalog captured from the official
 [Google Health API data types](https://developers.google.com/health/data-types)
 page. The catalog includes the official data type name, kind, operation list,
 scope family and the read-only connector operations this MCP can validate.
+
+### Confirmed dailyRollUp product caps (`window_size_days * page_size`)
+
+| data type | maxDurationDays | source |
+| --- | --- | --- |
+| `nutrition-log` | 90 | issue #15 |
+| `total-calories` | 14 | issue #18 / @maxgow |
+
+Unknown types are not clamped. The client clamps `page_size` for known caps
+instead of forwarding Google's `INVALID_ROLLUP_QUERY_DURATION`.
 
 ## Static Plan
 

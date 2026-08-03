@@ -21,9 +21,16 @@ Use `setup --scope-preset <name>` to choose the smallest useful read-only scope 
 - `basic` - profile and settings
 - `activity` - profile, settings, activity and health metrics
 - `sleep` - profile, settings and sleep
-- `full` - all recommended read-only scopes
+- `full` - recommended read-only scopes (profile, settings, activity, health metrics, sleep, nutrition)
+- `clinical` - `full` plus opt-in **ECG** and **irregular-rhythm-notification** scopes (`googlehealth.ecg.readonly`, `googlehealth.irn.readonly`). Not in `full` on purpose — these are sensitive consent surfaces.
+- `nutrition-write` - read nutrition + opt-in write scope (only write-capable preset)
 
 Advanced users can pass `--scopes` with a comma- or space-separated Google Health scope list.
+
+```bash
+# Re-auth for ECG / irregular rhythm after a MISSING_OAUTH_SCOPE on those types:
+npx -y google-health-mcp-unofficial auth --scope-preset clinical
+```
 
 ## Diagnostics
 

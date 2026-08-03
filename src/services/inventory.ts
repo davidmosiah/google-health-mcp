@@ -80,7 +80,7 @@ export function buildDataInventory() {
     notes: [
       "This inventory is static MCP metadata and does not call Google Health APIs.",
       "Endpoint data types use kebab case, such as steps, sleep, heart-rate, body-fat and daily-resting-heart-rate.",
-      "Filter fields use snake case, such as heart_rate.sample_time.physical_time or sleep.interval.civil_start_time.",
+      "Filter fields use snake case and depend on the data-type kind: interval → `{type}.interval.start_time` / `.civil_start_time`; sample → `{type}.sample_time.physical_time` / `.civil_time`; daily → `{type}.date`; sleep sessions → `sleep.interval.civil_end_time` (not civil_start_time); ECG → `electrocardiogram.interval.start_time` only.",
       "Call the connection status tool before live data tools to verify credentials and local token readiness.",
       "Use raw privacy mode only when the user explicitly requests upstream payloads.",
       "Google Health API v4 is still evolving; check official release notes before production launch decisions because scopes and data types can change."

@@ -82,6 +82,25 @@ try {
   });
   assert.equal(requests[4].body.pageSize, 100);
 
+  // issue #18 / @maxgow on #3: total-calories maxDurationDays=14
+  await client.dailyRollup({
+    dataType: 'total-calories',
+    startDate: '2026-07-13',
+    endDate: '2026-07-14',
+    pageSize: 100,
+  });
+  assert.equal(requests[5].body.pageSize, 14, 'page_size 100 must clamp to 14 for total-calories');
+
+  await client.dailyRollup({
+    dataType: 'total-calories',
+    startDate: '2026-07-13',
+    endDate: '2026-07-14',
+    windowSizeDays: 2,
+    pageSize: 100,
+  });
+  assert.equal(requests[6].body.windowSizeDays, 2);
+  assert.equal(requests[6].body.pageSize, 7, '2 * page_size must stay <= 14 for total-calories');
+
   const fetchCountBeforeInvalid = requests.length;
   for (const action of [
     () => client.dailyRollup({ dataType: 'steps', startDate: '2026-02-30' }),

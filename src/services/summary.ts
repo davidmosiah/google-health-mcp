@@ -44,6 +44,22 @@ async function safe<T>(fn: () => Promise<T>, endpoint: string): Promise<T | { er
   }
 }
 
+/**
+ * AIP-160 filter builders for the data-type kinds used by daily_summary.
+ * Official field map (list/reconcile): https://developers.google.com/health/reference/rest/v4/users.dataTypes.dataPoints/list
+ * - Daily summaries: `{type}.date`
+ * - Sleep sessions: `{type}.interval.civil_end_time` (civil_start_time is NOT valid for sleep)
+ * - Interval types: `{type}.interval.civil_start_time` / `.start_time`
+ * Confirmed live: @maxgow on #3 — civil_start_time was rejected for resting HR, HRV, sleep.
+ */
+export function dailyDateFilter(snakeType: string, startDate: string, endDateExclusive: string): string {
+  return `${snakeType}.date >= "${startDate}" AND ${snakeType}.date < "${endDateExclusive}"`;
+}
+
+export function sleepCivilEndFilter(startDate: string, endDateExclusive: string): string {
+  return `sleep.interval.civil_end_time >= "${startDate}" AND sleep.interval.civil_end_time < "${endDateExclusive}"`;
+}
+
 async function dailyBundle(client: Pick<GoogleHealthClient, "dailyRollup" | "reconcileDataPoints">, date: string) {
   const endDate = addDays(date, 1);
   const [steps, distance, calories, activeZoneMinutes, heartRate, sleep, hrv, weight] = await Promise.all([
@@ -51,9 +67,9 @@ async function dailyBundle(client: Pick<GoogleHealthClient, "dailyRollup" | "rec
     safe(() => client.dailyRollup({ dataType: "distance", startDate: date, endDate }), "dailyRollUp:distance"),
     safe(() => client.dailyRollup({ dataType: "total-calories", startDate: date, endDate }), "dailyRollUp:total-calories"),
     safe(() => client.dailyRollup({ dataType: "active-zone-minutes", startDate: date, endDate }), "dailyRollUp:active-zone-minutes"),
-    safe(() => client.reconcileDataPoints({ dataType: "daily-resting-heart-rate", filter: `daily_resting_heart_rate.interval.civil_start_time >= "${date}" AND daily_resting_heart_rate.interval.civil_start_time < "${endDate}"`, pageSize: 25 }), "reconcile:daily-resting-heart-rate"),
-    safe(() => client.reconcileDataPoints({ dataType: "sleep", filter: `sleep.interval.civil_start_time >= "${date}" AND sleep.interval.civil_start_time < "${endDate}"`, pageSize: 25, dataSourceFamily: "users/me/dataSourceFamilies/google-wearables" }), "reconcile:sleep"),
-    safe(() => client.reconcileDataPoints({ dataType: "daily-heart-rate-variability", filter: `daily_heart_rate_variability.interval.civil_start_time >= "${date}" AND daily_heart_rate_variability.interval.civil_start_time < "${endDate}"`, pageSize: 25 }), "reconcile:daily-heart-rate-variability"),
+    safe(() => client.reconcileDataPoints({ dataType: "daily-resting-heart-rate", filter: dailyDateFilter("daily_resting_heart_rate", date, endDate), pageSize: 25 }), "reconcile:daily-resting-heart-rate"),
+    safe(() => client.reconcileDataPoints({ dataType: "sleep", filter: sleepCivilEndFilter(date, endDate), pageSize: 25, dataSourceFamily: "users/me/dataSourceFamilies/google-wearables" }), "reconcile:sleep"),
+    safe(() => client.reconcileDataPoints({ dataType: "daily-heart-rate-variability", filter: dailyDateFilter("daily_heart_rate_variability", date, endDate), pageSize: 25 }), "reconcile:daily-heart-rate-variability"),
     safe(() => client.dailyRollup({ dataType: "weight", startDate: date, endDate }), "dailyRollUp:weight")
   ]);
   return { date, steps, distance, calories, activeZoneMinutes, heartRate, sleep, hrv, weight };
