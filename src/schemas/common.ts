@@ -313,6 +313,7 @@ export const ConnectionStatusOutputSchema = z.object({
   missing_env: z.array(z.string()),
   redirect_uri: z.string().optional(),
   automatic_auth_supported: z.boolean(),
+  headless: z.object({ detected: z.boolean(), reason: z.string() }).strict(),
   config: z.object({ source: z.enum(["env", "local_config", "mixed", "missing"]), path: z.string(), exists: z.boolean(), secure_permissions: z.boolean().optional(), error: z.string().optional() }).strict(),
   token: z.object({ path: z.string(), exists: z.boolean(), readable: z.boolean(), permissions: z.string().optional(), secure_permissions: z.boolean().optional(), expires_at: z.number().optional(), expired: z.boolean().optional(), has_refresh_token: z.boolean().optional(), scope: z.string().optional(), error: z.string().optional() }).strict(),
   oauth: z.object({

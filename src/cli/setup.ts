@@ -21,6 +21,8 @@ interface SetupOptions {
   tokenPath?: string;
   cachePath?: string;
   noAuth: boolean;
+  manualAuth: boolean;
+  localCallbackAuth: boolean;
   json: boolean;
   homeDir: string;
 }
@@ -72,7 +74,10 @@ export async function runSetupCommand(args: string[]): Promise<number> {
   }
 
   if (!options.noAuth) {
-    return runAuthCommand(options.json ? ["--json"] : []);
+    const authArgs = options.json ? ["--json"] : [];
+    if (options.manualAuth) authArgs.push("--manual");
+    if (options.localCallbackAuth) authArgs.push("--local-callback");
+    return runAuthCommand(authArgs);
   }
   return 0;
 }
@@ -103,6 +108,8 @@ async function parseSetupOptions(args: string[]): Promise<SetupOptions> {
     tokenPath: answers.get("token-path"),
     cachePath: answers.get("cache-path"),
     noAuth: flags.has("no-auth"),
+    manualAuth: flags.has("manual") || flags.has("headless") || flags.has("no-browser"),
+    localCallbackAuth: flags.has("local-callback"),
     json,
     homeDir
   };

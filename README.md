@@ -224,6 +224,26 @@ npx -y google-health-mcp-unofficial auth
 npx -y google-health-mcp-unofficial doctor
 ```
 
+### Headless hosts (servers, SSH, containers, WSL)
+
+`auth` normally opens a browser and catches the redirect on `127.0.0.1`. On a host with no
+browser that cannot work. When it detects a headless host — SSH, or no `DISPLAY` /
+`WAYLAND_DISPLAY` — it switches to pasting the redirect back in:
+
+```bash
+npx -y google-health-mcp-unofficial auth --manual
+```
+
+Non-interactive provisioning:
+
+```bash
+npx -y google-health-mcp-unofficial auth --print-url
+npx -y google-health-mcp-unofficial auth --code "http://127.0.0.1:3000/callback?code=..."
+```
+
+See [docs/oauth.md](docs/oauth.md) for `--local-callback`, SSH tunnel notes, and
+`GOOGLE_HEALTH_HEADLESS`.
+
 Scope presets keep OAuth consent easier to reason about — `basic`, `activity`, `sleep` and `full`. The full preset list, the exact read-only scope URLs and the OAuth endpoints live in [docs/oauth.md](docs/oauth.md).
 
 If setup gets stuck:

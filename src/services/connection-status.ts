@@ -5,6 +5,7 @@ import { DEFAULT_SCOPES, GOOGLE_HEALTH_NUTRITION_WRITE_SCOPE, PINNED_NPM_PACKAGE
 import type { PrivacyMode, GoogleHealthTokenSet } from "../types.js";
 import { HERMES_DIRECT_TOOLS, type AgentClientName } from "./agent-manifest.js";
 import { loadConfigSources } from "./local-config.js";
+import { detectHeadlessEnvironment } from "./headless.js";
 
 type Env = Record<string, string | undefined>;
 
@@ -29,6 +30,10 @@ export interface ConnectionStatus extends Record<string, unknown> {
   missing_env: string[];
   redirect_uri?: string;
   automatic_auth_supported: boolean;
+  headless: {
+    detected: boolean;
+    reason: string;
+  };
   config: {
     source: "env" | "local_config" | "mixed" | "missing";
     path: string;
@@ -98,6 +103,8 @@ export async function buildConnectionStatus(options: ConnectionStatusOptions = {
   const oauth = buildOAuthScopeStatus(token);
   const nodeSupported = Number(process.versions.node.split(".")[0] ?? 0) >= 20;
   const automaticAuthSupported = Boolean(redirectUri && isLocalHttpRedirect(redirectUri));
+  const detection = detectHeadlessEnvironment(env);
+  const headless = { detected: detection.headless, reason: detection.reason };
   const tokenUsable = token.exists && token.readable && token.secure_permissions !== false && (token.expired !== true || token.has_refresh_token === true);
   const ready = missingEnv.length === 0 && tokenUsable && oauth.scope_status !== "missing_recommended";
   const ok = ready && nodeSupported;
@@ -116,6 +123,7 @@ export async function buildConnectionStatus(options: ConnectionStatusOptions = {
     missing_env: missingEnv,
     redirect_uri: redirectUri,
     automatic_auth_supported: automaticAuthSupported,
+    headless,
     config: {
       source: sources.source,
       path: sources.local.path,
@@ -130,7 +138,7 @@ export async function buildConnectionStatus(options: ConnectionStatusOptions = {
       path: cachePath
     },
     client_checks: clientChecks,
-    next_steps: buildNextSteps({ missingEnv, token, nodeSupported, automaticAuthSupported, redirectUri, oauth })
+    next_steps: buildNextSteps({ missingEnv, token, nodeSupported, automaticAuthSupported, redirectUri, oauth, headless: headless.detected })
   };
 }
 
@@ -321,6 +329,7 @@ function buildNextSteps(input: {
   automaticAuthSupported: boolean;
   redirectUri?: string;
   oauth: ConnectionStatus["oauth"];
+  headless: boolean;
 }): string[] {
   const steps: string[] = [];
   if (!input.nodeSupported) steps.push("Install Node.js 20 or newer.");
@@ -331,7 +340,11 @@ function buildNextSteps(input: {
     steps.push("For one-command auth, set GOOGLE_HEALTH_REDIRECT_URI to a local callback such as http://127.0.0.1:3000/callback.");
   }
   if (!input.token.exists) {
-    steps.push("Run `google-health-mcp-server auth` to authorize Google Health and save local tokens.");
+    steps.push(
+      input.headless
+        ? "Run `google-health-mcp-server auth --manual` to authorize Google Health from a browser on another device and save local tokens."
+        : "Run `google-health-mcp-server auth` to authorize Google Health and save local tokens."
+    );
   } else if (!input.token.readable) {
     steps.push(`Fix token file readability at ${input.token.path}.`);
   } else if (input.token.secure_permissions === false) {

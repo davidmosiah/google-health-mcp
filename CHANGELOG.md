@@ -1,3 +1,31 @@
+## 0.7.3 - 2026-08-03
+
+### Added (from @jumpmanjay PR #17 — rebased onto 0.7.2)
+
+- **Headless OAuth.** `auth --manual` (aliases `--headless`, `--no-browser`) prints
+  the authorization URL and accepts the redirect URL (or bare code) pasted back,
+  so servers, SSH sessions, containers and WSL can authorize without a local
+  browser. Selected automatically over SSH or when `DISPLAY`/`WAYLAND_DISPLAY`
+  are unset; overridable with `GOOGLE_HEALTH_HEADLESS` and `--local-callback`.
+- `auth --code "<redirect-url-or-code>"` for non-interactive provisioning.
+- `auth --print-url` to emit only the authorization URL.
+- `setup` forwards `--manual` / `--local-callback` to its auth step.
+- `doctor` / `connection_status` report detected headless status and recommend
+  `auth --manual` when appropriate.
+- `scripts/headless-auth-test.mjs` coverage for detection, paste parsing and
+  flow selection.
+
+### Fixed
+
+- Missing `xdg-open`/`open` no longer crashes `auth` with an uncaught `ENOENT`
+  while the callback server is still waiting.
+- Authorization URL is always printed in the callback flow, not only under
+  `--no-open`.
+- Local callback flow records granted OAuth scopes (exchanges full callback URL),
+  matching the manual flow.
+
+Credit: @jumpmanjay (PR #17).
+
 ## 0.7.2 - 2026-08-03
 
 ### Fixed (from external real-account coverage report — @maxgow on #3)
