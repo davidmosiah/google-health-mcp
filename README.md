@@ -32,8 +32,9 @@
 >
 > Or wire it standalone into Claude Desktop / Cursor / ChatGPT Desktop &mdash; see the install section below.
 
-> **What's new in 0.5.4 (2026-07-30):** `google_health_daily_rollup` no longer breaks on
-> default `nutrition-log` queries (`page_size` vs Google's 90-day cap — issue #15).
+> **What's new in 0.7.3 (2026-08-03):** headless OAuth (`auth --manual`) for SSH /
+> containers / WSL · real-account rollup/filter fixes from external testers ·
+> opt-in `clinical` scopes for ECG/IRN · pins live in Hermes/living-body.
 > Full notes in [CHANGELOG.md](CHANGELOG.md).
 
 ## Highest-leverage contribution — real-account coverage
@@ -50,6 +51,16 @@ to [issue #21](https://github.com/davidmosiah/google-health-mcp/issues/21). The
 command is read-only and is designed to omit OAuth secrets, local paths and raw
 health measurements. A static preflight is available before OAuth with
 `coverage --json`.
+
+### Other ways to help (no account required)
+
+| Action | Link |
+| --- | --- |
+| Star if the project earned it | [stargazers](https://github.com/davidmosiah/google-health-mcp/stargazers) |
+| Docs GFI — headless auth walkthrough | [#22](https://github.com/davidmosiah/google-health-mcp/issues/22) |
+| Compose with other wearables | [`delx-living-body`](https://github.com/davidmosiah/delx-living-body) |
+| One-command Hermes pack | [`delx-wellness-hermes`](https://github.com/davidmosiah/delx-wellness-hermes) |
+| Full registry | [`delx-wellness`](https://github.com/davidmosiah/delx-wellness) |
 
 ---
 
