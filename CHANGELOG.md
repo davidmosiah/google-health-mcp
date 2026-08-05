@@ -1,3 +1,9 @@
+## Unreleased (OSS-100)
+
+### Added
+- Coverage report template + issue form; headless auth walkthrough; clinical/dense policies; first-call FAQ.
+
+
 ## 0.7.3 - 2026-08-03
 
 ### Added (from @jumpmanjay PR #17 — rebased onto 0.7.2)

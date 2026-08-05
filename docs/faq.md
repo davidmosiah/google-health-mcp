@@ -17,3 +17,11 @@ before production launch decisions.
 ## Does it expose raw sensors?
 
 No. `raw` mode means upstream Google Health API JSON for supported endpoints, not raw accelerometer telemetry.
+
+## First agent call
+
+1. `google_health_connection_status`
+2. `google_health_agent_manifest` (if installing)
+3. `google_health_daily_summary` or `coverage --live --json` (redacted)
+
+Dense series tools are not required for Google Health day rollups; prefer summaries.

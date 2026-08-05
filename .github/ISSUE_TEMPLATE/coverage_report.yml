@@ -1,0 +1,15 @@
+name: Coverage report
+description: Redacted real-account coverage for the public proof loop
+title: "Coverage report: "
+labels: ["coverage"]
+body:
+  - type: markdown
+    attributes:
+      value: "Booleans/errors only. See docs/coverage-report-template.md"
+  - type: textarea
+    id: json
+    attributes:
+      label: Redacted coverage JSON
+      description: Output of coverage --live --json
+    validations:
+      required: true

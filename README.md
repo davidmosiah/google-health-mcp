@@ -345,3 +345,6 @@ The full [Delx Wellness](https://wellness.delx.ai) connector library:
 ## License
 
 MIT - see [LICENSE](LICENSE).
+
+> Agent-ready yardstick: [mcp-scorecard](https://github.com/davidmosiah/mcp-scorecard) — aim ≥90 on CI.
+
