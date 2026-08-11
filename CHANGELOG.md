@@ -202,6 +202,11 @@ and drift between the two is a build failure.
 
 # Changelog
 
+## 0.7.5
+
+- Security: raise `hono` override to **4.13.1** (clears moderate MCP SDK transitive advisories); `@hono/node-server@2.1.0`.
+
+
 ## 0.7.4
 
 - Security: override `fast-uri@3.1.5` and `ip-address@10.4.0` (high transitive).
