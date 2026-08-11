@@ -202,6 +202,11 @@ and drift between the two is a build failure.
 
 # Changelog
 
+## 0.7.4
+
+- Security: override `fast-uri@3.1.5` and `ip-address@10.4.0` (high transitive).
+
+
 
 ## 0.5.6 - 2026-07-30
 
