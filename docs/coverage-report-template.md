@@ -1,6 +1,8 @@
 # Real-account coverage report template (proof loop)
 
-Use for [issue #21](https://github.com/davidmosiah/google-health-mcp/issues/21).
+Use for [issue #2](https://github.com/davidmosiah/google-health-mcp/issues/2) (or a new issue).
+[#21](https://github.com/davidmosiah/google-health-mcp/issues/21) is closed at honest **1/2** —
+see [proof-loop-status.md](./proof-loop-status.md).
 
 ## Privacy
 - Booleans/errors only — no PHI, no names, no raw samples.

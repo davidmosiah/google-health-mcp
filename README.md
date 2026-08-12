@@ -43,12 +43,14 @@ If you have Fitbit, Pixel Watch, Android health data or Google Health API v4
 access, the most useful help is a redacted coverage report:
 
 ```bash
-npx -y google-health-mcp-unofficial@0.7.3 coverage --live --json
+npx -y google-health-mcp-unofficial coverage --live --json
 ```
 
 Review the output, remove anything you do not want public, then post the report
-to [issue #21](https://github.com/davidmosiah/google-health-mcp/issues/21). The
-command is read-only and is designed to omit OAuth secrets, local paths and raw
+on [issue #2](https://github.com/davidmosiah/google-health-mcp/issues/2) (or a
+new issue). The timed proof loop on [#21](https://github.com/davidmosiah/google-health-mcp/issues/21)
+closed **1/2** — see [docs/proof-loop-status.md](docs/proof-loop-status.md).
+The command is read-only and is designed to omit OAuth secrets, local paths and raw
 health measurements. A static preflight is available before OAuth with
 `coverage --json`.
 
@@ -202,8 +204,8 @@ If you can test with a real account:
 
 - Run `npx -y google-health-mcp-unofficial doctor` and confirm the OAuth flow is clear.
 - Run `npx -y google-health-mcp-unofficial support --feedback --json` and paste the anonymous bundle into issue #4.
-- Run `npx -y google-health-mcp-unofficial coverage --json` for the static issue #21 plan.
-- After OAuth, run `npx -y google-health-mcp-unofficial coverage --live --json` and paste the reviewed, redacted report into issue #21.
+- Run `npx -y google-health-mcp-unofficial coverage --json` for the static coverage plan.
+- After OAuth, run `npx -y google-health-mcp-unofficial coverage --live --json` and paste the reviewed, redacted report into [issue #2](https://github.com/davidmosiah/google-health-mcp/issues/2).
 - Try `google_health_connection_status`, `google_health_data_inventory` and `google_health_daily_summary` from your MCP client.
 - Open an issue for missing data types, confusing setup steps, client-specific friction or privacy concerns.
 - Do **not** paste OAuth tokens, client secrets, local paths or personal health measurements into public issues.
@@ -211,7 +213,8 @@ If you can test with a real account:
 Useful links:
 
 - [Beta testers wanted](https://github.com/davidmosiah/google-health-mcp/issues/2)
-- [Data coverage validation](https://github.com/davidmosiah/google-health-mcp/issues/21)
+- [Proof loop status (honest 1/2)](docs/proof-loop-status.md)
+- [Beta testers / new coverage](https://github.com/davidmosiah/google-health-mcp/issues/2)
 - [MCP client setup feedback](https://github.com/davidmosiah/google-health-mcp/issues/4)
 - [Beta feedback guide](docs/beta-feedback.md)
 - [Data coverage harness](docs/data-coverage.md)
@@ -344,7 +347,7 @@ The full [Delx Wellness](https://wellness.delx.ai) connector library:
 
 ## License
 
-MIT - see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE). [Code of Conduct](CODE_OF_CONDUCT.md).
 
 > Agent-ready yardstick: [mcp-scorecard](https://github.com/davidmosiah/mcp-scorecard) — aim ≥90 on CI.
 

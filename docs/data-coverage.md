@@ -1,10 +1,10 @@
 # Google Health Data Coverage
 
 Issue [#3](https://github.com/davidmosiah/google-health-mcp/issues/3) closed
-2026-08-03 after the first external redacted live report (@maxgow). Further reports go to
-[#21](https://github.com/davidmosiah/google-health-mcp/issues/21)
-(and setup notes still welcome on
-[#2](https://github.com/davidmosiah/google-health-mcp/issues/2)).
+2026-08-03 after the first external redacted live report (@maxgow). The timed
+second-report window on [#21](https://github.com/davidmosiah/google-health-mcp/issues/21)
+closed **1/2** on 2026-08-08 — [proof-loop-status.md](./proof-loop-status.md).
+Further reports go to [#2](https://github.com/davidmosiah/google-health-mcp/issues/2).
 
 The connector ships a local catalog captured from the official
 [Google Health API data types](https://developers.google.com/health/data-types)
