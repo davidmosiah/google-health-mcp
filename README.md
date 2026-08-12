@@ -66,6 +66,19 @@ health measurements. A static preflight is available before OAuth with
 
 ---
 
+## HTTP (v2 stateless)
+
+Default is **stdio**. Optional Streamable HTTP — no session id, JSON responses, loopback only:
+
+```bash
+npx -y google-health-mcp-unofficial --http
+# GET  http://127.0.0.1:3000/health
+# POST http://127.0.0.1:3000/mcp   (sessionless)
+```
+
+Env: `GOOGLE_HEALTH_MCP_HOST`, `GOOGLE_HEALTH_MCP_PORT`, `GOOGLE_HEALTH_MCP_TRANSPORT=http`.
+
+
 <!-- /delx-wellness header v2 -->
 
 # Google Health MCP
