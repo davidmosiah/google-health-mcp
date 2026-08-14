@@ -110,7 +110,7 @@ npx -y google-health-mcp-unofficial auth                        # OAuth, tokens 
 npx -y google-health-mcp-unofficial doctor                      # verifies you're ready
 ```
 
-`doctor --live` calls safe Google Health identity/profile/settings endpoints after auth to prove the API is reachable — the connection proof for this beta. Full install details (scope presets, MFA, recovery) are in the [Install section](#install) below.
+`doctor --live` calls safe Google Health identity/profile/settings endpoints after auth to prove the API is reachable — the connection proof for this beta. That does **not** prove Claude Desktop can invoke tools: Desktop validates `outputSchema` as JSON Schema 2020-12. Use `google-health-mcp-unofficial@0.7.6+` (see [#23](https://github.com/davidmosiah/google-health-mcp/issues/23)). Full install details (scope presets, MFA, recovery) are in the [Install section](#install) below.
 
 ## Try it with your agent
 

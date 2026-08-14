@@ -202,6 +202,18 @@ and drift between the two is a build failure.
 
 # Changelog
 
+## 0.7.6 - 2026-08-14
+
+### Fixed
+
+- **Claude Desktop can invoke tools again** ([#23](https://github.com/davidmosiah/google-health-mcp/issues/23)
+  by @wooyoungpark88). `tools/list` no longer advertises
+  `outputSchema.$schema` / `inputSchema.$schema` as JSON Schema draft-07. The
+  MCP SDK (1.29–1.30) still converts Zod with that dialect; we rewrite listed
+  schemas to JSON Schema 2020-12 after conversion. `doctor --live` was never
+  the failing path — only the Desktop validator. Gate:
+  `npm run test:output-schema-dialect`.
+
 ## 0.7.5
 
 - Security: raise `hono` override to **4.13.1** (clears moderate MCP SDK transitive advisories); `@hono/node-server@2.1.0`.

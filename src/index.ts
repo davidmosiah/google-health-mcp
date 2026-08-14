@@ -8,6 +8,7 @@ import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 import { runCliCommand } from "./cli/commands.js";
 import { registerGoogleHealthPrompts } from "./prompts/google-health-prompts.js";
 import { registerGoogleHealthResources } from "./resources/google-health-resources.js";
+import { installClientSafeToolSchemas } from "./services/client-safe-json-schema.js";
 import { registerGoogleHealthTools } from "./tools/google-health-tools.js";
 
 function createServer(): McpServer {
@@ -19,6 +20,7 @@ function createServer(): McpServer {
   registerGoogleHealthTools(server);
   registerGoogleHealthResources(server);
   registerGoogleHealthPrompts(server);
+  installClientSafeToolSchemas(server);
   return server;
 }
 
