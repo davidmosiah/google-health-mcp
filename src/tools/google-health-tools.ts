@@ -209,12 +209,13 @@ export function registerGoogleHealthTools(server: McpServer): void {
   }, async (params) => {
     try {
       const config = getConfig();
-      const url = new GoogleHealthClient(config).authUrl(params.state, params.scopes);
+      const { authUrl, codeVerifier } = new GoogleHealthClient(config).authUrl(params.state, params.scopes);
       const output = {
-        auth_url: url,
+        auth_url: authUrl,
         redirect_uri: config.redirectUri,
         scopes: params.scopes?.length ? params.scopes : config.scopes,
-        next_step: "Open auth_url, approve access, then pass the returned code or full redirect URL to google_health_exchange_code."
+        code_verifier: codeVerifier,
+        next_step: "Open auth_url, approve access, then pass the returned code (or full redirect URL) AND code_verifier to google_health_exchange_code."
       };
       return makeResponse(output, params.response_format, bulletList("Google Health OAuth URL", output));
     } catch (error) {
@@ -230,7 +231,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
   }, async (params) => {
     try {
-      const result = await client().exchangeCode(params.code);
+      const result = await client().exchangeCode(params.code, params.code_verifier);
       const output = { ...result, note: "Token values were stored locally and intentionally omitted from this response." };
       return makeResponse(output, params.response_format, bulletList("Google Health OAuth Exchange", output));
     } catch (error) {

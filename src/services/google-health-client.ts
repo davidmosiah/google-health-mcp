@@ -1,4 +1,5 @@
 import { URL, URLSearchParams } from "node:url";
+import { createHash, randomBytes } from "node:crypto";
 import {
   DAILY_ROLLUP_MAX_DURATION_DAYS,
   DEFAULT_DAILY_ROLLUP_PAGE_SIZE,
@@ -47,6 +48,31 @@ export interface RollupQuery extends PageParams {
   dataSourceFamily?: string;
 }
 
+/**
+ * Generate a PKCE code verifier: 43-128 random bytes, base64url encoded.
+ * RFC 7636 requires 43-128 characters; we use 32 random bytes → 43 chars.
+ */
+function generateCodeVerifier(): string {
+  return base64UrlEncode(randomBytes(32));
+}
+
+/**
+ * Generate a PKCE S256 code challenge from a verifier.
+ */
+function generateCodeChallenge(verifier: string): string {
+  return base64UrlEncode(createHash("sha256").update(verifier).digest());
+}
+
+/**
+ * Base64url encode (RFC 4648 §5): standard base64 with URL-safe alphabet.
+ */
+function base64UrlEncode(buffer: Buffer): string {
+  return buffer.toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+}
+
 export class GoogleHealthClient {
   private readonly tokenStore: TokenStore;
   private cache?: GoogleHealthCache;
@@ -55,7 +81,9 @@ export class GoogleHealthClient {
     this.tokenStore = new TokenStore(config.tokenPath);
   }
 
-  authUrl(state?: string, scopes?: string[]): string {
+  authUrl(state?: string, scopes?: string[]): { authUrl: string; codeVerifier: string } {
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = generateCodeChallenge(codeVerifier);
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       redirect_uri: this.config.redirectUri,
@@ -63,20 +91,26 @@ export class GoogleHealthClient {
       scope: (scopes?.length ? scopes : this.config.scopes).join(" "),
       access_type: "offline",
       include_granted_scopes: "true",
-      prompt: "consent"
+      prompt: "consent",
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256"
     });
     if (state) params.set("state", state);
-    return `${GOOGLE_HEALTH_AUTH_URL}?${params.toString()}`;
+    return {
+      authUrl: `${GOOGLE_HEALTH_AUTH_URL}?${params.toString()}`,
+      codeVerifier
+    };
   }
 
-  async exchangeCode(input: string): Promise<{ ok: true; token_path: string; scope?: string; expires_at?: number }> {
+  async exchangeCode(input: string, codeVerifier: string): Promise<{ ok: true; token_path: string; scope?: string; expires_at?: number }> {
     const code = this.extractCode(input);
     const body = new URLSearchParams({
       client_id: this.config.clientId,
       client_secret: this.config.clientSecret,
       grant_type: "authorization_code",
       code,
-      redirect_uri: this.config.redirectUri
+      redirect_uri: this.config.redirectUri,
+      code_verifier: codeVerifier
     });
     const tokens = await this.requestTokens(body);
     const redirectScope = this.extractScope(input);

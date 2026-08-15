@@ -144,12 +144,12 @@ export async function runAuthCommand(args: string[]): Promise<number> {
   const options = parseAuthOptions(args);
   const config = getConfig();
   const client = new GoogleHealthClient(config);
-  const state = randomBytes(4).toString("hex");
-  const authUrl = client.authUrl(state);
+  const state = randomBytes(16).toString("hex");
+  const { authUrl, codeVerifier } = await client.authUrl(state);
 
   // Fully non-interactive: the operator already completed the consent screen.
   if (options.code) {
-    return finishAuth(client, parsePastedRedirect(options.code), options.json);
+    return finishAuth(client, parsePastedRedirect(options.code), options.json, codeVerifier);
   }
 
   if (options.printUrl) {
@@ -161,10 +161,10 @@ export async function runAuthCommand(args: string[]): Promise<number> {
   const manual = options.manual || (headless.headless && !options.localCallback);
 
   if (manual) {
-    return runManualFlow(client, authUrl, state, options, config.redirectUri);
+    return runManualFlow(client, authUrl, state, options, config.redirectUri, codeVerifier);
   }
 
-  return runLocalCallbackFlow(client, authUrl, state, options, config.redirectUri, headless);
+  return runLocalCallbackFlow(client, authUrl, state, options, config.redirectUri, headless, codeVerifier);
 }
 
 /**
@@ -176,7 +176,8 @@ async function runManualFlow(
   authUrl: string,
   state: string,
   options: AuthOptions,
-  redirectUri: string
+  redirectUri: string,
+  codeVerifier: string
 ): Promise<number> {
   const out = options.json ? process.stderr : process.stdout;
   const write = (line = "") => out.write(`${line}\n`);
@@ -198,7 +199,7 @@ async function runManualFlow(
   write();
 
   const answer = await promptForCode(out);
-  return finishAuth(client, parsePastedRedirect(answer, state), options.json);
+  return finishAuth(client, parsePastedRedirect(answer, state), options.json, codeVerifier);
 }
 
 /**
@@ -212,7 +213,8 @@ async function runLocalCallbackFlow(
   state: string,
   options: AuthOptions,
   redirectUri: string,
-  headless: HeadlessDetection
+  headless: HeadlessDetection,
+  codeVerifier: string
 ): Promise<number> {
   const redirect = parseLocalRedirectUri(redirectUri);
   const timeoutMs = Number(process.env.GOOGLE_HEALTH_AUTH_TIMEOUT_MS ?? 300_000);
@@ -245,12 +247,12 @@ async function runLocalCallbackFlow(
     console.log("Waiting for callback...");
   }, authUrl, !options.noOpen);
 
-  return finishAuth(client, result.code, options.json);
+  return finishAuth(client, result.code, options.json, codeVerifier);
 }
 
 /** Exchange the code for tokens and report where they were saved, never what they are. */
-async function finishAuth(client: GoogleHealthClient, input: string, json: boolean): Promise<number> {
-  const exchange = await client.exchangeCode(input);
+async function finishAuth(client: GoogleHealthClient, input: string, json: boolean, codeVerifier: string): Promise<number> {
+  const exchange = await client.exchangeCode(input, codeVerifier);
   const output = {
     ok: true,
     token_path: exchange.token_path,

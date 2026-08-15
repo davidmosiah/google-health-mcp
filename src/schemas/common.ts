@@ -71,6 +71,7 @@ export const AuthUrlInputSchema = z.object({
 
 export const ExchangeCodeInputSchema = z.object({
   code: z.string().min(1).describe("OAuth authorization code, or a full redirect URL containing ?code=..."),
+  code_verifier: z.string().min(1).describe("PKCE code verifier from google_health_get_auth_url."),
   response_format: ResponseFormatSchema
 }).strict();
 
@@ -161,6 +162,7 @@ export const AuthUrlOutputSchema = z.object({
   auth_url: z.string(),
   redirect_uri: z.string(),
   scopes: z.array(z.string()),
+  code_verifier: z.string().describe("PKCE code verifier. Pass this to google_health_exchange_code."),
   next_step: z.string()
 }).strict();
 

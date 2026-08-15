@@ -169,6 +169,15 @@ const HEADLESS_ENV = { ...ENV, GOOGLE_HEALTH_HEADLESS: '1' };
   assert.match(printed.stdout, /client_id=client-id/);
   assert.match(printed.stdout, new RegExp(`redirect_uri=http%3A%2F%2F127\\.0\\.0\\.1%3A${PORT}%2Fcallback`));
   assert.doesNotMatch(printed.stdout, /client-secret/, 'the auth URL must never carry the client secret');
+  
+  // PKCE S256 parameters must be present
+  assert.match(printed.stdout, /code_challenge=[A-Za-z0-9_-]{43}/, 'auth URL must include PKCE code_challenge (S256, 43 chars)');
+  assert.match(printed.stdout, /code_challenge_method=S256/, 'auth URL must use S256 PKCE method');
+  
+  // State must have at least 128 bits of entropy (32 hex chars = 16 bytes = 128 bits)
+  const stateMatch = printed.stdout.match(/state=([a-f0-9]+)/);
+  assert.ok(stateMatch, 'auth URL must include state parameter');
+  assert.ok(stateMatch[1].length >= 32, `state must be at least 32 hex chars (128 bits), got ${stateMatch[1].length} chars`);
 }
 
 // The whole point: with the callback port already taken, manual auth must not
@@ -244,4 +253,12 @@ await new Promise((resolve) => blocker.close(resolve));
 }
 
 rmSync(dir, { recursive: true, force: true });
-console.log(JSON.stringify({ ok: true, headless_auth: true, detection: true, paste_parsing: true, cli: true }, null, 2));
+console.log(JSON.stringify({ 
+  ok: true, 
+  headless_auth: true, 
+  detection: true, 
+  paste_parsing: true, 
+  cli: true,
+  pkce_s256: true,
+  state_entropy_128bits: true
+}, null, 2));
