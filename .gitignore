@@ -5,7 +5,9 @@ dist/
 *.log
 .DS_Store
 coverage/
-.strava-mcp/
+.google-health-mcp/
+tokens.json
+config.json
 
 # MCP Registry local auth tokens
 .mcpregistry_*_token
