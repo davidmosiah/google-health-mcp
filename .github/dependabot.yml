@@ -1,0 +1,25 @@
+# High/critical security advisories only; monthly batch.
+# No version-update PRs. One grouped security PR per ecosystem.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+    groups:
+      security-monthly:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+    groups:
+      security-monthly:
+        applies-to: security-updates
+        patterns:
+          - "*"
