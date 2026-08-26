@@ -1,3 +1,10 @@
+## 0.7.7 - 2026-08-26
+
+### Security
+
+- OAuth authorization now uses PKCE S256 and 128-bit state (was 32-bit).
+- Local OAuth token files are gitignored so they cannot be committed.
+
 ## Unreleased (OSS-100)
 
 ### Added
