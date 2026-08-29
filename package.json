@@ -1,6 +1,6 @@
 {
   "name": "google-health-mcp-unofficial",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "description": "Unofficial local-first Google Health API v4 MCP server for AI health, sleep and activity agents.",
   "type": "module",
   "bin": {
@@ -24,7 +24,8 @@
     "docs/*.xml",
     "docs/index.html",
     "examples",
-    "llms.txt"
+    "llms.txt",
+    "skill"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -32,7 +33,7 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "smoke": "node scripts/smoke-tools.mjs",
-    "test": "npm run typecheck && npm run build && npm run smoke && npm run smoke:http && npm run test:output-schema-dialect && npm run test:endpoint-contracts && npm run test:summary && npm run test:coverage-report && npm run test:privacy-cache && npm run test:gps-redaction && npm run test:redaction-docs && npm run test:declared-limits && npm run test:http-retry && npm run test:http-cache && npm run test:cli-ux && npm run test:headless-auth && npm run test:agent-readiness && npm run test:hermes-agent && npm run test:metadata && npm run test:write-gate && npm run test:nutrition-normalize && npm run test:v4-nutrition && npm run test:synthetic-demo && npm run test:revoke-gate",
+    "test": "npm run typecheck && npm run build && npm run smoke && npm run smoke:http && npm run test:output-schema-dialect && npm run test:endpoint-contracts && npm run test:summary && npm run test:coverage-report && npm run test:privacy-cache && npm run test:gps-redaction && npm run test:redaction-docs && npm run test:declared-limits && npm run test:http-retry && npm run test:http-cache && npm run test:cli-ux && npm run test:headless-auth && npm run test:agent-readiness && npm run test:hermes-agent && npm run test:metadata && npm run test:write-gate && npm run test:nutrition-normalize && npm run test:v4-nutrition && npm run test:synthetic-demo && npm run test:revoke-gate && npm run test:skill-surface",
     "test:output-schema-dialect": "node scripts/output-schema-dialect-test.mjs",
     "test:endpoint-contracts": "node scripts/endpoint-contract-test.mjs",
     "test:summary": "node scripts/summary-fixture-test.mjs",
@@ -54,7 +55,8 @@
     "test:v4-nutrition": "node scripts/v4-nutrition-mapping-test.mjs",
     "test:synthetic-demo": "node scripts/test-synthetic-demo.mjs",
     "test:revoke-gate": "node scripts/test-revoke-gate.mjs",
-    "test:headless-auth": "node scripts/headless-auth-test.mjs"
+    "test:headless-auth": "node scripts/headless-auth-test.mjs",
+    "test:skill-surface": "node scripts/test-skill-surface.mjs"
   },
   "keywords": [
     "mcp",

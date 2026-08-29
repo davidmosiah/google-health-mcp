@@ -17,3 +17,6 @@ MCP command: google-health-mcp-server
 - Tokens stay local under ~/.google-health-mcp/tokens.json and should never be printed.
 - Authorization boundary: Google OAuth scopes protect upstream data; the local MCP process does not provide per-user, per-agent, API-key or per-tool RBAC. Do not expose HTTP publicly without an authenticated gateway and isolated per-user Google credentials. Details: https://github.com/davidmosiah/google-health-mcp/blob/main/docs/authorization.md
 - Not medical advice. Use as trend context only.
+
+Skill (same gates, no MCP client required): skill/SKILL.md
+npx -y google-health-mcp-unofficial call <tool> --json '{...}'

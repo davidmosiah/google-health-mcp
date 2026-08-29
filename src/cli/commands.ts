@@ -21,6 +21,7 @@ import {
 import { buildSyntheticDemoPayload } from "../services/synthetic-demo.js";
 import { runAuthCommand } from "./auth.js";
 import { runSetupCommand } from "./setup.js";
+import { runToolCall } from "./tool-calls.js";
 
 const COMMANDS = ["setup", "doctor", "status", "support", "coverage", "auth", "onboarding", "demo", "version", "help"] as const;
 
@@ -29,6 +30,7 @@ export async function runCliCommand(args: string[]): Promise<number | undefined>
   if (!command || command === "--http") return undefined;
   if (command === "setup") return runSetupCommand(rest);
   if (command === "doctor" || command === "status") return runDoctor(rest);
+  if (command === "call") return runToolCall(rest);
   if (command === "support") return runSupport(rest);
   if (command === "coverage") return runCoverage(rest);
   if (command === "auth") return runAuthCommand(rest);

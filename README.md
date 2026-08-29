@@ -364,3 +364,12 @@ MIT - see [LICENSE](LICENSE). [Code of Conduct](CODE_OF_CONDUCT.md).
 
 > Agent-ready yardstick: [mcp-scorecard](https://github.com/davidmosiah/mcp-scorecard) — aim ≥90 on CI.
 
+## Skill or MCP
+
+Same package, two doors. MCP registers tools on stdio/HTTP. The [skill](skill/SKILL.md) can drive the **same** tools through the CLI when the client has no MCP:
+
+```bash
+npx -y google-health-mcp-unofficial call google_health_connection_status --json '{}'
+```
+
+Copy `skill/SKILL.md` into your agent skills dir.
