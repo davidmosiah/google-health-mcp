@@ -63,6 +63,7 @@ function isVersionBelow(actual, floor) {
 }
 
 const overrides = packageJson.overrides ?? {};
+const lockfile = JSON.parse(readFileSync('package-lock.json', 'utf8'));
 for (const [name, floor] of Object.entries(OVERRIDE_FLOORS)) {
   const pinned = overrides[name];
   if (!pinned) {
@@ -71,6 +72,12 @@ for (const [name, floor] of Object.entries(OVERRIDE_FLOORS)) {
   }
   if (isVersionBelow(pinned, floor)) {
     errors.push(`package.json overrides.${name}=${pinned} is below patched floor ${floor}.`);
+  }
+  const locked = lockfile.packages?.[`node_modules/${name}`]?.version;
+  if (!locked) {
+    errors.push(`package-lock.json is missing node_modules/${name} (Dependabot security updates).`);
+  } else if (isVersionBelow(locked, floor)) {
+    errors.push(`package-lock.json ${name}@${locked} is below patched floor ${floor}.`);
   }
 }
 
