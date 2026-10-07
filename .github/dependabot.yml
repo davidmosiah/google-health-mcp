@@ -1,5 +1,8 @@
 # High/critical security advisories only; monthly batch.
 # No version-update PRs. One grouped security PR per ecosystem.
+# Keep package.json npm overrides on patched versions. Pinning a still-vulnerable
+# override makes this grouped job fail with security_update_not_possible
+# (Dependabot cannot rewrite overrides, so the lockfile stays on the pin).
 version: 2
 updates:
   - package-ecosystem: github-actions
