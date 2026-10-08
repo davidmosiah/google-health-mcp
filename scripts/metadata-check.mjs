@@ -40,6 +40,47 @@ if (Array.isArray(packageJson.files) && !packageJson.files.includes('llms.txt'))
   errors.push('package.json files must include llms.txt.');
 }
 
+// Dependabot cannot rewrite npm overrides. Pins below these floors make the
+// grouped security job fail with security_update_not_possible (2026-09-08+).
+const OVERRIDE_FLOORS = {
+  qs: '6.16.0',
+  hono: '4.13.7',
+  'fast-uri': '3.1.8',
+  'ip-address': '10.7.1'
+};
+
+function isVersionBelow(actual, floor) {
+  const left = String(actual).split('.').map((part) => Number.parseInt(part, 10) || 0);
+  const right = String(floor).split('.').map((part) => Number.parseInt(part, 10) || 0);
+  const length = Math.max(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const a = left[index] ?? 0;
+    const b = right[index] ?? 0;
+    if (a < b) return true;
+    if (a > b) return false;
+  }
+  return false;
+}
+
+const overrides = packageJson.overrides ?? {};
+const lockfile = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+for (const [name, floor] of Object.entries(OVERRIDE_FLOORS)) {
+  const pinned = overrides[name];
+  if (!pinned) {
+    errors.push(`package.json overrides must pin ${name} to at least ${floor} (Dependabot security updates).`);
+    continue;
+  }
+  if (isVersionBelow(pinned, floor)) {
+    errors.push(`package.json overrides.${name}=${pinned} is below patched floor ${floor}.`);
+  }
+  const locked = lockfile.packages?.[`node_modules/${name}`]?.version;
+  if (!locked) {
+    errors.push(`package-lock.json is missing node_modules/${name} (Dependabot security updates).`);
+  } else if (isVersionBelow(locked, floor)) {
+    errors.push(`package-lock.json ${name}@${locked} is below patched floor ${floor}.`);
+  }
+}
+
 const readme = readFileSync('README.md', 'utf8');
 if (!readme.includes('support --feedback --json')) {
   errors.push('README.md must document anonymous setup feedback.');
