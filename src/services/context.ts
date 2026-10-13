@@ -20,7 +20,7 @@ function loadFromActiveMinutes(activeMinutes?: number): "low" | "normal" | "high
 }
 
 export async function buildWellnessContext(client: Pick<GoogleHealthClient, "dailyRollup" | "reconcileDataPoints">, options: ContextOptions) {
-  const summary = await buildDailySummary(client, { date: "today", timezone: options.timezone });
+  const summary = await buildDailySummary(client, { ...options, date: "today" });
   const scorecard = record(summary.scorecard);
   const activeZoneMinutes = num(scorecard.active_zone_minutes);
   const sleepMinutes = num(scorecard.sleep_minutes);

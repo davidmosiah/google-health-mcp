@@ -31,6 +31,7 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
+import { isTimeZone } from "./dates.js";
 
 export type WellnessLanguage = "en" | "pt-BR";
 export type WellnessUnits = "metric" | "imperial";
@@ -272,6 +273,18 @@ export async function getProfile(): Promise<WellnessProfileDocument> {
   }
   const existing = await readProfileFile(PROFILE_PATH);
   return existing ?? clone(DEFAULT_PROFILE);
+}
+
+/** The profile's timezone when it is a valid IANA name; undefined (callers fall back to UTC) otherwise. */
+export async function profileTimezone(): Promise<string | undefined> {
+  // Read, never migrate: summaries are read-only and must not write the profile.
+  for (const path of [PROFILE_PATH, ...LEGACY_PATHS]) {
+    const profile = await readProfileFile(path); // null on a missing or broken file
+    if (!profile) continue;
+    const timezone = profile.profile.timezone;
+    return timezone && isTimeZone(timezone) ? timezone : undefined;
+  }
+  return undefined;
 }
 
 /**

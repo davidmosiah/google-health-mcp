@@ -182,6 +182,7 @@ The full tool catalog — Google Health API methods, agent manifest, diagnostics
   - `location_guard_never_observed_upstream` — NOT VERIFIED: Google Health API v4 documents no location/route data type, so no test here has ever seen a real Google payload carrying coordinates. The key list is a forward-compatible guard derived from Google's own encodings, not a measured fix for an observed leak.
   <!-- declared-limits:end -->
 - Daily rollups use validated civil `YYYY-MM-DD` ranges; general rollups preserve exact timezone-aware ISO date-times. Invalid or reversed ranges fail before HTTP.
+- `"today"` in summaries and daily rollups resolves in the `timezone` argument, else the wellness profile's timezone, else UTC. An invalid IANA timezone is rejected.
 - `support --redacted` prints a copy-paste support bundle for GitHub issues without tokens, secrets, local paths or health measurements.
 - `support --feedback --json` prints an anonymous setup-feedback bundle for beta testers and MCP client reports.
 - `coverage --live --json` prints only redacted data-type status and point-count buckets; it never includes raw Google Health payloads.

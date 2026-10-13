@@ -60,6 +60,55 @@ assert.equal(context.source, 'google_health');
 assert.equal(context.sleep_hours, 7.17);
 assert.equal(context.recent_training_load, 'normal');
 
+// "today" resolves in the caller's timezone, with an injected clock
+const justAfterUtcMidnight = Date.parse('2026-08-03T00:30:00Z'); // 20:30 on 2026-08-02 in New York
+const nyDaily = await buildDailySummary(fakeClient, { date: 'today', timezone: 'America/New_York', now: justAfterUtcMidnight });
+assert.equal(nyDaily.window.date, '2026-08-02');
+const utcDaily = await buildDailySummary(fakeClient, { date: 'today', timezone: 'UTC', now: justAfterUtcMidnight });
+assert.equal(utcDaily.window.date, '2026-08-03');
+reconcileCalls.length = 0;
+await buildWeeklySummary(fakeClient, { days: 7, compare_days: 0, timezone: 'America/New_York', now: justAfterUtcMidnight });
+const weeklySleepDates = reconcileCalls.filter((c) => c.dataType === 'sleep').map((c) => c.filter.match(/>= "([^"]+)"/)[1]).sort();
+assert.equal(weeklySleepDates[0], '2026-07-27');
+assert.equal(weeklySleepDates.at(-1), '2026-08-02');
+reconcileCalls.length = 0;
+await buildWeeklySummary(fakeClient, { days: 7, compare_days: 7, timezone: 'America/New_York', now: justAfterUtcMidnight });
+const comparedSleepDates = reconcileCalls.filter((c) => c.dataType === 'sleep').map((c) => c.filter.match(/>= "([^"]+)"/)[1]).sort();
+assert.equal(comparedSleepDates.length, 14);
+assert.equal(new Set(comparedSleepDates).size, 14, 'current and comparison windows must not overlap');
+assert.equal(comparedSleepDates[0], '2026-07-20');
+reconcileCalls.length = 0;
+await buildWellnessContext(fakeClient, { days: 7, timezone: 'America/New_York', now: justAfterUtcMidnight });
+assert.match(reconcileCalls.find((c) => c.dataType === 'sleep').filter, />= "2026-08-02"/);
+await assert.rejects(
+  buildDailySummary(fakeClient, { date: 'today', timezone: 'Mars/Olympus_Mons' }),
+  /Invalid timezone "Mars\/Olympus_Mons".*IANA/
+);
+await assert.rejects(
+  buildDailySummary(fakeClient, { date: '2026-08-01', timezone: 'Mars/Olympus_Mons' }),
+  /Invalid timezone/,
+  'an explicit date must not skip timezone validation'
+);
+assert.equal(nyDaily.generated_at, new Date(justAfterUtcMidnight).toISOString());
+const nyWeekly = await buildWeeklySummary(fakeClient, { days: 7, compare_days: 0, timezone: 'America/New_York', now: justAfterUtcMidnight });
+assert.equal(nyWeekly.window.start_date, '2026-07-27');
+assert.equal(nyWeekly.window.end_date, '2026-08-02');
+const { todayIn, resolveDate } = await import('../dist/services/dates.js');
+assert.equal(resolveDate(''), '', 'empty date must reach client validation, not become today');
+const { DailyRollupInputSchema, DailySummaryInputSchema, WeeklySummaryInputSchema, WellnessContextInputSchema } = await import('../dist/schemas/common.js');
+for (const schema of [DailyRollupInputSchema, DailySummaryInputSchema, WeeklySummaryInputSchema, WellnessContextInputSchema]) {
+  const bad = schema.safeParse({ timezone: 'Mars/Olympus_Mons' });
+  assert.equal(bad.success, false);
+  assert.match(bad.error.issues[0].message, /Invalid timezone.*IANA/);
+  assert.equal(schema.safeParse({ timezone: 'America/New_York' }).success, true);
+}
+for (const schema of [DailySummaryInputSchema, WeeklySummaryInputSchema, WellnessContextInputSchema]) {
+  assert.equal(schema.parse({}).timezone, undefined, 'omitted timezone must stay unset so the profile default applies');
+}
+// zod 4 applies .default() through .optional(); end_date must stay unset so the client uses start_date + 1.
+assert.equal(DailyRollupInputSchema.parse({}).end_date, undefined);
+assert.equal(todayIn('Asia/Tokyo', Date.parse('2026-08-02T16:00:00Z')), '2026-08-03');
+
 let capturedStderr = '';
 const originalStderrWrite = process.stderr.write.bind(process.stderr);
 process.stderr.write = (chunk) => {
@@ -79,5 +128,28 @@ try {
   process.stderr.write = originalStderrWrite;
 }
 assert.match(capturedStderr, /\[google-health-mcp\] summary domain error: synthetic Google Health sleep failure/);
+
+// profileTimezone reads ~/.delx-wellness/profile.json, whose path is fixed at import, so run it under a temp HOME.
+const { execFileSync } = await import('node:child_process');
+const { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+const { tmpdir } = await import('node:os');
+const { join } = await import('node:path');
+const profileHome = mkdtempSync(join(tmpdir(), 'ghmcp-tz-'));
+try {
+  const profileTimezoneIn = (timezone, dir = '.delx-wellness', file = 'profile.json') => {
+    mkdirSync(join(profileHome, dir), { recursive: true });
+    writeFileSync(join(profileHome, dir, file), JSON.stringify({ schema: 'delx-wellness-profile/v1', profile: { timezone } }));
+    return execFileSync(process.execPath, ['--input-type=module', '-e',
+      "const { profileTimezone } = await import(process.argv[1]); process.stdout.write(String(await profileTimezone()));",
+      new URL('../dist/services/profile-store.js', import.meta.url).href], { env: { ...process.env, HOME: profileHome, USERPROFILE: profileHome }, encoding: 'utf8' });
+  };
+  assert.equal(profileTimezoneIn('Asia/Tokyo'), 'Asia/Tokyo');
+  assert.equal(profileTimezoneIn('Mars/Olympus_Mons'), 'undefined', 'an invalid profile timezone falls back to UTC');
+  rmSync(join(profileHome, '.delx-wellness'), { recursive: true });
+  assert.equal(profileTimezoneIn('Europe/Budapest', '.openclaw-delx-wellness/workspace', 'wellness-profile.json'), 'Europe/Budapest');
+  assert.equal(existsSync(join(profileHome, '.delx-wellness')), false, 'reading the timezone must not migrate the legacy profile');
+} finally {
+  rmSync(profileHome, { recursive: true, force: true });
+}
 
 console.log(JSON.stringify({ ok: true, daily: daily.kind, weekly: weekly.kind }, null, 2));

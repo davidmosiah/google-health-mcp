@@ -235,6 +235,7 @@ function isObject(value: unknown): value is UnknownRecord {
 }
 
 function normalizeDate(value: string | undefined): string {
+  // ponytail: "today" means yesterday in UTC on purpose (a complete day); coverage checks the call works, not the numbers. Add a timezone if that changes.
   if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   return new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 }

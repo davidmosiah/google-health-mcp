@@ -14,6 +14,7 @@ import type { GoogleHealthConfig, GoogleHealthTokenSet } from "../types.js";
 import { NUTRITION_DATA_TYPE } from "./google-v4-nutrition-datapoint.js";
 import { disabledCacheStatus, GoogleHealthCache, type CacheStatus } from "./cache.js";
 import { fetchWithCache, getCacheStats } from "./http-cache.js";
+import { resolveDate, type TodayContext } from "./dates.js";
 import { fetchWithRetry } from "./http-retry.js";
 import { redactErrorMessage } from "./redaction.js";
 import { TokenStore } from "./token-store.js";
@@ -32,7 +33,7 @@ export interface ReconcileQuery extends DataPointQuery {
   dataSourceFamily?: string;
 }
 
-export interface DailyRollupQuery extends PageParams {
+export interface DailyRollupQuery extends PageParams, TodayContext {
   dataType: string;
   startDate: string;
   endDate?: string;
@@ -158,8 +159,9 @@ export class GoogleHealthClient {
   async dailyRollup(query: DailyRollupQuery): Promise<unknown> {
     const windowSizeDays = Math.max(1, Math.trunc(query.windowSizeDays ?? 1));
     const pageSize = resolveDailyRollupPageSize(query.dataType, windowSizeDays, query.pageSize);
+    const startDate = resolveDate(query.startDate, query);
     return this.post(`/v4/users/me/dataTypes/${encodeDataType(query.dataType)}/dataPoints:dailyRollUp`, {
-      range: civilDateRange(query.startDate, query.endDate ?? nextDate(query.startDate)),
+      range: civilDateRange(startDate, query.endDate === undefined ? nextDate(startDate) : resolveDate(query.endDate, query)),
       windowSizeDays,
       pageSize,
       pageToken: query.pageToken,
@@ -437,7 +439,6 @@ function civilDateTime(date: string, hours: number, minutes: number, seconds: nu
 }
 
 function normalizeDate(value: string): string {
-  if (value === "today") return new Date().toISOString().slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`Invalid Google Health date: expected YYYY-MM-DD, received ${value}`);
   const parsed = new Date(`${value}T00:00:00Z`);
   if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {

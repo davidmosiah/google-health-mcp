@@ -28,12 +28,12 @@ async function latestStepsResource(uri: URL) {
 }
 
 async function dailySummaryResource(uri: URL) {
-  const summary = await buildDailySummary(new GoogleHealthClient(getConfig()), { date: "today", timezone: "UTC" });
+  const summary = await buildDailySummary(new GoogleHealthClient(getConfig()), { date: "today" });
   return textResource(uri, formatSummaryMarkdown(summary));
 }
 
 async function weeklySummaryResource(uri: URL) {
-  const summary = await buildWeeklySummary(new GoogleHealthClient(getConfig()), { days: 7, compare_days: 7, timezone: "UTC" });
+  const summary = await buildWeeklySummary(new GoogleHealthClient(getConfig()), { days: 7, compare_days: 7 });
   return textResource(uri, formatSummaryMarkdown(summary));
 }
 

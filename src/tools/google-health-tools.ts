@@ -47,6 +47,7 @@ import {
   getProfile,
   getProfilePath,
   missingCriticalFields,
+  profileTimezone,
   updateProfile,
   type WellnessProfileDocument
 } from "../services/profile-store.js";
@@ -361,6 +362,7 @@ export function registerGoogleHealthTools(server: McpServer): void {
         dataType: params.data_type,
         startDate: params.start_date,
         endDate: params.end_date,
+        timezone: params.timezone ?? await profileTimezone(),
         windowSizeDays: params.window_size_days,
         pageSize: params.page_size,
         pageToken: params.page_token,

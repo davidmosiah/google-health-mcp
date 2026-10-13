@@ -1,31 +1,21 @@
 import type { GoogleHealthClient } from "./google-health-client.js";
+import { resolveDate, todayIn, type TodayContext } from "./dates.js";
+import { profileTimezone } from "./profile-store.js";
 import { redactErrorMessage } from "./redaction.js";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 type UnknownRecord = Record<string, unknown>;
 
-export interface DailySummaryOptions {
+export interface DailySummaryOptions extends TodayContext {
   date?: string;
-  timezone?: string;
 }
 
-export interface WeeklySummaryOptions {
+export interface WeeklySummaryOptions extends TodayContext {
   days: number;
   compare_days?: number;
-  timezone?: string;
 }
 
 function isObject(value: unknown): value is UnknownRecord {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function dateString(daysAgo = 0): string {
-  return new Date(Date.now() - daysAgo * DAY_MS).toISOString().slice(0, 10);
-}
-
-function normalizeDate(value?: string): string {
-  return !value || value === "today" ? dateString(0) : value;
 }
 
 function addDays(date: string, days: number): string {
@@ -240,14 +230,15 @@ function actions(stats: ReturnType<typeof dailyStats>, weekly?: ReturnType<typeo
 }
 
 export async function buildDailySummary(client: Pick<GoogleHealthClient, "dailyRollup" | "reconcileDataPoints">, options: DailySummaryOptions) {
-  const date = normalizeDate(options.date);
+  const timezone = options.timezone ?? await profileTimezone();
+  const date = resolveDate(options.date, { ...options, timezone });
   const bundle = await dailyBundle(client, date);
   const stats = dailyStats(bundle);
   return {
     kind: "daily_summary" as const,
-    generated_at: new Date().toISOString(),
+    generated_at: new Date(options.now ?? Date.now()).toISOString(),
     source: "google_health",
-    window: { date, timezone: options.timezone ?? "UTC" },
+    window: { date, timezone: timezone ?? "UTC" },
     beta: true,
     data_quality: {
       confidence: Object.values(stats.missing_or_failed).filter(Boolean).length <= 2 ? "partial" : "low",
@@ -268,11 +259,13 @@ export async function buildDailySummary(client: Pick<GoogleHealthClient, "dailyR
 
 export async function buildWeeklySummary(client: Pick<GoogleHealthClient, "dailyRollup" | "reconcileDataPoints">, options: WeeklySummaryOptions) {
   const days = Math.max(options.days, 7);
-  const current = (await Promise.all(Array.from({ length: days }, (_, index) => dailyBundle(client, dateString(index)))))
+  const timezone = options.timezone ?? await profileTimezone();
+  const today = todayIn(timezone, options.now);
+  const current = (await Promise.all(Array.from({ length: days }, (_, index) => dailyBundle(client, addDays(today, -index)))))
     .map(dailyStats)
     .reverse();
   const previous = options.compare_days && options.compare_days > 0
-    ? (await Promise.all(Array.from({ length: options.compare_days }, (_, index) => dailyBundle(client, dateString(days + index)))))
+    ? (await Promise.all(Array.from({ length: options.compare_days }, (_, index) => dailyBundle(client, addDays(today, -(days + index))))))
       .map(dailyStats)
       .reverse()
     : [];
@@ -280,9 +273,9 @@ export async function buildWeeklySummary(client: Pick<GoogleHealthClient, "daily
   const previousStats = previous.length ? aggregateStats(previous) : undefined;
   return {
     kind: "weekly_summary" as const,
-    generated_at: new Date().toISOString(),
+    generated_at: new Date(options.now ?? Date.now()).toISOString(),
     source: "google_health",
-    window: { days, compare_days: options.compare_days ?? 0, timezone: options.timezone ?? "UTC" },
+    window: { start_date: addDays(today, -(days - 1)), end_date: today, days, compare_days: options.compare_days ?? 0, timezone: timezone ?? "UTC" },
     beta: true,
     data_quality: {
       days_with_steps: currentStats.days_with_steps,

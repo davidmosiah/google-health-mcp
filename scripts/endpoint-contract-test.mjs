@@ -101,14 +101,24 @@ try {
   assert.equal(requests[6].body.windowSizeDays, 2);
   assert.equal(requests[6].body.pageSize, 7, '2 * page_size must stay <= 14 for total-calories');
 
+  // "today" resolves in the caller's timezone, with an injected clock
+  const justAfterUtcMidnight = Date.parse('2026-08-03T00:30:00Z'); // 20:30 on 2026-08-02 in New York
+  await client.dailyRollup({ dataType: 'steps', startDate: 'today', timezone: 'America/New_York', now: justAfterUtcMidnight });
+  assert.deepEqual(requests.at(-1).body.range.start.date, { year: 2026, month: 8, day: 2 });
+  assert.deepEqual(requests.at(-1).body.range.end.date, { year: 2026, month: 8, day: 3 });
+  await client.dailyRollup({ dataType: 'steps', startDate: '2026-07-08', endDate: 'today', now: justAfterUtcMidnight });
+  assert.deepEqual(requests.at(-1).body.range.end.date, { year: 2026, month: 8, day: 3 });
+
   const fetchCountBeforeInvalid = requests.length;
   for (const action of [
     () => client.dailyRollup({ dataType: 'steps', startDate: '2026-02-30' }),
+    () => client.dailyRollup({ dataType: 'steps', startDate: 'today', timezone: 'Mars/Olympus_Mons' }),
+    () => client.dailyRollup({ dataType: 'steps', startDate: '' }),
     () => client.dailyRollup({ dataType: 'steps', startDate: '2026-07-15', endDate: '2026-07-08' }),
     () => client.rollup({ dataType: 'heart-rate', startTime: 'not-a-date', endTime: '2026-07-15T00:00:00Z', windowSize: '3600s' }),
     () => client.rollup({ dataType: 'heart-rate', startTime: '2026-07-15T00:00:00Z', endTime: '2026-07-08T00:00:00Z', windowSize: '3600s' }),
   ]) {
-    await assert.rejects(action, /Invalid Google Health|Google Health start/);
+    await assert.rejects(action, /Invalid Google Health|Google Health start|Invalid timezone/);
   }
   assert.equal(requests.length, fetchCountBeforeInvalid, 'invalid ranges must fail before HTTP');
 
