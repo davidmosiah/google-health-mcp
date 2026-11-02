@@ -3,14 +3,37 @@ on:
   push:
     branches: [main]
   pull_request:
+permissions:
+  contents: read
 jobs:
   scorecard:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm ci || npm install
+      - run: npm ci
       - run: npm test
-      - run: npx -y mcp-scorecard@0.5.4 . --min-score 90
+      - name: Check out reviewed scorecard with JSON Schema dialect support
+        uses: actions/checkout@v4
+        with:
+          repository: davidmosiah/mcp-scorecard
+          ref: e211c329379d52e47b0fafc0b54de7a6575617b3
+          path: .scorecard-tool
+          persist-credentials: false
+      - name: Build pinned scorecard (no dependency lifecycle scripts)
+        working-directory: .scorecard-tool
+        run: npm ci --ignore-scripts && npm run build
+      - name: Score and require no failed subchecks
+        shell: bash
+        run: |
+          report="$RUNNER_TEMP/mcp-scorecard-report.json"
+          probe_home="$(mktemp -d "$RUNNER_TEMP/scorecard-home.XXXXXX")"
+          status=0
+          env -i PATH="$PATH" HOME="$probe_home" node .scorecard-tool/dist/index.js . --json --min-score 90 > "$report" || status=$?
+          cat "$report"
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          node scripts/check-scorecard-report.mjs "$report"
