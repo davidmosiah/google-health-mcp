@@ -1,5 +1,10 @@
 ## Unreleased
 
+## Unreleased
+
+- Update vulnerable dependencies and explicitly bound tool arguments to 10,000 elements.
+- Reject compressed HTTP request bodies; add synthetic stdio/HTTP input-limit regressions.
+
 ### Fixed
 
 - `daily_summary`, `weekly_summary` and `wellness_context` resolve "today" (and, for `weekly_summary`, the trailing day windows) in the caller's `timezone` instead of UTC. A New York user asking in the evening no longer gets the next, still-empty UTC day.
