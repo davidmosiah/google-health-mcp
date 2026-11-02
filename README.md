@@ -374,3 +374,7 @@ npx -y google-health-mcp-unofficial call google_health_connection_status --json 
 ```
 
 Copy `skill/SKILL.md` into your agent skills dir.
+
+## Release migration
+
+Before upgrading to 0.8.0, review the [compatibility and migration notes](docs/migration-0.8.0.md).
