@@ -6,7 +6,7 @@ see [proof-loop-status.md](./proof-loop-status.md).
 
 ## Privacy
 - Booleans/errors only — no PHI, no names, no raw samples.
-- Prefer: `npx -y google-health-mcp-unofficial@0.7.3 coverage --live --json`
+- Prefer: `npx -y google-health-mcp-unofficial@0.8.0 coverage --live --json`
 
 ## Checklist
 - [ ] Package version

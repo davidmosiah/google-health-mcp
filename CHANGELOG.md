@@ -1,6 +1,15 @@
-## Unreleased
+## 0.8.0 - 2026-11-02
 
-## Unreleased
+### Security and compatibility
+
+- Release the merged input, profile-storage and local-only HTTP hardening. Unsafe remote HTTP bindings, invalid/oversized profile values, profile symlinks, compressed requests and excessive tool arguments are rejected.
+- Authenticated responses are not served from the legacy cross-account cache. Existing cache files are not automatically removed.
+- This pre-1.0 minor release includes compatibility restrictions; see [the migration guide](docs/migration-0.8.0.md).
+- Align package, server and runtime release metadata; expand the existing CI matrix to Node.js 20/22/24 without changing permissions.
+
+### Previously unreleased changes
+
+### Previously unreleased changes
 
 - Update vulnerable dependencies and explicitly bound tool arguments to 10,000 elements.
 - Reject compressed HTTP request bodies; add synthetic stdio/HTTP input-limit regressions.
@@ -30,7 +39,7 @@ Skill layer ships in-package (`skill/SKILL.md`). Agents can use MCP tools **or**
 - OAuth authorization now uses PKCE S256 and 128-bit state (was 32-bit).
 - Local OAuth token files are gitignored so they cannot be committed.
 
-## Unreleased (OSS-100)
+### Previously unreleased changes
 
 ### Added
 - Coverage report template + issue form; headless auth walkthrough; clinical/dense policies; first-call FAQ.
