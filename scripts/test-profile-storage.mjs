@@ -100,21 +100,38 @@ if(mode){
  }
  else if(mode==='migration') {await Promise.all([migrateFromLegacy(),updateProfile({notes:'concurrent migration update'})]);assert.equal((await getProfile()).notes,'concurrent migration update');assert.equal((await getProfile()).profile.preferred_name,'legacy synthetic');}
 } else {
- async function settleWriters(promises) {
+ async function settleWriters(promises, syntheticHome) {
   const results = await Promise.allSettled(promises);
   const errors = results.filter(x => x.status === 'rejected').map(x => x.reason);
-  if (errors.length) throw new AggregateError(errors, 'Synthetic profile writer failures; all children settled before cleanup.');
+  if (errors.length) {
+   const observedEperm = errors.some(error => error.message.includes('\"operation\":\"mkdir\"') && error.message.includes('\"code\":\"EPERM\"'));
+   if (observedEperm) {
+    // Diagnostic only: all children are closed. Acquire a new lock once and
+    // remove it only if this probe owns it; never make the failed test pass.
+    const lock = join(syntheticHome, '.delx-wellness/profile.json.lock');
+    const code = error => ['EPERM','EACCES','ENOENT','ENOTDIR','EIO','EINVAL','EBUSY','ENOTEMPTY','EEXIST'].includes(error?.code) ? error.code : 'OTHER';
+    let owned = false, acquisition, release = 'not-owned';
+    try { await fs.mkdir(lock, {mode:0o700}); owned = true; acquisition = 'success'; }
+    catch (error) { acquisition = code(error); }
+    finally {
+     if (owned) { try { await fs.rmdir(lock); release = 'success'; } catch (error) { release = code(error); } }
+    }
+    console.error(JSON.stringify({diagnostic:'profile-lock-after-writers',acquisition,release,
+     originalFailurePreserved:true,platform:process.platform,node:process.versions.node,uv:process.versions.uv}));
+   }
+   throw new AggregateError(errors, 'Synthetic profile writer failures; all children settled before cleanup.');
+  }
  }
  const root=await fs.mkdtemp(join(tmpdir(),'profile-storage-test-'));
  try {
   const home=join(root,'shared');await fs.mkdir(home);
-  await settleWriters(Array.from({length:6},(_,i)=>child(home,['write',String(i)])));await child(home,['verify']);
-  const start=String(Date.now()+2000);await settleWriters(Array.from({length:8},()=>child(home,['counter',start])));assert.equal(await fs.readFile(join(home,'.delx-wellness/profile.json.counter'),'utf8'),'8');
+  await settleWriters(Array.from({length:6},(_,i)=>child(home,['write',String(i)])),home);await child(home,['verify']);
+  const start=String(Date.now()+2000);await settleWriters(Array.from({length:8},()=>child(home,['counter',start])),home);assert.equal(await fs.readFile(join(home,'.delx-wellness/profile.json.counter'),'utf8'),'8');
   const rounds = Number(process.env.PROFILE_LOCK_STRESS_ROUNDS ?? '1');
   assert.ok(Number.isInteger(rounds) && rounds >= 1 && rounds <= 50, 'bounded synthetic stress rounds');
   for (let round = 1; round < rounds; round += 1) {
    const stressHome = join(root, 'stress-' + round); await fs.mkdir(stressHome);
-   await settleWriters(Array.from({length:6},(_,i)=>child(stressHome,['write',String(i)])));
+   await settleWriters(Array.from({length:6},(_,i)=>child(stressHome,['write',String(i)])),stressHome);
    await child(stressHome,['verify']);
   }
   console.log(JSON.stringify({ok:true,diagnostic:'profile-lock-stress',rounds,writersPerRound:6,platform:process.platform,node:process.versions.node}));
