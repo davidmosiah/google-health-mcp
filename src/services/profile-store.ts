@@ -29,8 +29,10 @@
 /// <reference types="node" />
 
 import { promises as fs } from "node:fs";
+import { readProfileText, withProfileLock, writeProfileText } from "./profile-file.js";
+import { validateProfileShape } from "./profile-validation.js";
 import { homedir } from "node:os";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import { isTimeZone } from "./dates.js";
 
 export type WellnessLanguage = "en" | "pt-BR";
@@ -213,16 +215,19 @@ async function fileExists(path: string): Promise<boolean> {
   try {
     await fs.access(path);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw new Error("Stored wellness profile is unavailable. Check local file access before retrying.");
   }
 }
 
 async function readProfileFile(path: string): Promise<WellnessProfileDocument | null> {
   try {
-    const raw = await fs.readFile(path, "utf8");
+    const raw = await readProfileText(path);
     const parsed = JSON.parse(raw) as Partial<WellnessProfileDocument>;
-    if (parsed?.schema !== "delx-wellness-profile/v1") return null;
+    if (parsed?.schema !== "delx-wellness-profile/v1") throw new Error("Unsupported profile schema.");
+    validateProfileShape(parsed, DEFAULT_PROFILE as unknown as Record<string, unknown>, true);
+    rejectSecretsInPatch(parsed);
     // Structural defaults merge: legacy / partial files often lack one or more
     // sub-objects, and downstream code (buildProfileSummary, missingCriticalFields,
     // updateProfile) assumes every nested object is defined. Fill any missing
@@ -243,16 +248,15 @@ async function readProfileFile(path: string): Promise<WellnessProfileDocument | 
       safety: { ...DEFAULT_PROFILE.safety, ...(parsed.safety ?? {}) },
       notes: parsed.notes ?? DEFAULT_PROFILE.notes,
     };
-  } catch {
-    return null;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    // Never overwrite a malformed file with defaults, or expose its contents.
+    throw new Error("Stored wellness profile is invalid. Repair or restore the local profile before updating it.");
   }
 }
 
 async function writeProfileFile(path: string, profile: WellnessProfileDocument): Promise<void> {
-  await fs.mkdir(dirname(path), { recursive: true });
-  const tmp = `${path}.tmp.${process.pid}.${Date.now()}`;
-  await fs.writeFile(tmp, JSON.stringify(profile, null, 2) + "\n", { encoding: "utf8", mode: 0o600 });
-  await fs.rename(tmp, path);
+  await writeProfileText(path, profile);
 }
 
 /**
@@ -263,8 +267,13 @@ async function writeProfileFile(path: string, profile: WellnessProfileDocument):
  * file is missing.
  */
 export async function getProfile(): Promise<WellnessProfileDocument> {
+  if (await fileExists(PROFILE_PATH)) return (await readProfileFile(PROFILE_PATH)) ?? clone(DEFAULT_PROFILE);
+  return withProfileLock(PROFILE_PATH, getProfileUnlocked);
+}
+
+async function getProfileUnlocked(): Promise<WellnessProfileDocument> {
   if (!(await fileExists(PROFILE_PATH))) {
-    const migration = await migrateFromLegacy();
+    const migration = await migrateFromLegacyUnlocked();
     if (migration.migrated) {
       const migrated = await readProfileFile(PROFILE_PATH);
       if (migrated) return migrated;
@@ -279,7 +288,7 @@ export async function getProfile(): Promise<WellnessProfileDocument> {
 export async function profileTimezone(): Promise<string | undefined> {
   // Read, never migrate: summaries are read-only and must not write the profile.
   for (const path of [PROFILE_PATH, ...LEGACY_PATHS]) {
-    const profile = await readProfileFile(path); // null on a missing or broken file
+    const profile = await readProfileFile(path); // null only on a missing file; invalid stored data fails closed
     if (!profile) continue;
     const timezone = profile.profile.timezone;
     return timezone && isTimeZone(timezone) ? timezone : undefined;
@@ -296,8 +305,10 @@ export async function profileTimezone(): Promise<string | undefined> {
 export async function updateProfile(
   patch: Partial<WellnessProfileDocument>,
 ): Promise<WellnessProfileDocument> {
+  validateProfileShape(patch, DEFAULT_PROFILE as unknown as Record<string, unknown>);
   rejectSecretsInPatch(patch);
-  const current = await getProfile();
+  return withProfileLock(PROFILE_PATH, async () => {
+  const current = await getProfileUnlocked();
   const merged: WellnessProfileDocument = {
     schema: "delx-wellness-profile/v1",
     generated_by: current.generated_by || DEFAULT_PROFILE.generated_by,
@@ -314,6 +325,7 @@ export async function updateProfile(
   };
   await writeProfileFile(PROFILE_PATH, merged);
   return merged;
+  });
 }
 
 // Pattern matched against FIELD NAMES (object keys). High signal — a wellness
@@ -373,6 +385,10 @@ function rejectSecretsInPatch(patch: Partial<WellnessProfileDocument>): void {
  * Only runs if the canonical file does NOT exist. Idempotent.
  */
 export async function migrateFromLegacy(): Promise<{ migrated: boolean; from?: string }> {
+  return withProfileLock(PROFILE_PATH, migrateFromLegacyUnlocked);
+}
+
+async function migrateFromLegacyUnlocked(): Promise<{ migrated: boolean; from?: string }> {
   if (await fileExists(PROFILE_PATH)) return { migrated: false };
   for (const candidate of LEGACY_PATHS) {
     if (await fileExists(candidate)) {

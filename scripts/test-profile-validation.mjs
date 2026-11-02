@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { validateProfileShape } from '../dist/services/profile-validation.js';
+import { DEFAULT_PROFILE } from '../dist/services/profile-store.js';
+const valid = [{}, { profile: {} }, { notes: '' }, { devices: { connected: [] } }, { preferences: { ask_before_logging: false } }];
+for (const value of valid) assert.doesNotThrow(() => validateProfileShape(value, DEFAULT_PROFILE));
+assert.doesNotThrow(() => validateProfileShape(DEFAULT_PROFILE, DEFAULT_PROFILE, true));
+const invalid = [null, [], 'sensitive', { profile: null }, { profile: [] }, { devices: { connected: [null] } }, { preferences: { language_priority: ['xx'] } }, { profile: { units: 'unknown' } }, { preferences: { reply_style: 'unknown' } }, { schema: 'delx-wellness-profile/v1' }, JSON.parse('{"__proto__":{"polluted":true}}'), JSON.parse('{"profile":{"constructor":{}}}')];
+for (const number of [0, 1, NaN, Infinity, -Infinity]) invalid.push({ profile: { age_or_birth_year: number } });
+for (const value of invalid) assert.throws(() => validateProfileShape(value, DEFAULT_PROFILE), { message: 'Invalid wellness profile patch: use known v1 fields and their declared types.' });
+assert.throws(() => validateProfileShape({ version: 2 }, DEFAULT_PROFILE, true), /Invalid wellness profile patch/);
+assert.throws(() => validateProfileShape({ updated_at: null }, DEFAULT_PROFILE, true), /Invalid wellness profile patch/);
+console.log(`PASS ${valid.length + invalid.length + 3} shared profile shape cases; numeric/nonfinite values rejected for string fields`);
