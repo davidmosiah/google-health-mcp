@@ -50,8 +50,10 @@ share one token store between mutually untrusted agents.
 
 A hosted or shared deployment needs an additional layer that:
 
-1. authenticates every MCP caller using the current
-   [MCP Authorization specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization);
+1. authenticates HTTP MCP callers under the current
+   [MCP Authorization specification](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization),
+   with discoverable protected-resource metadata and validation that each
+   incoming access token was issued for the receiving MCP server;
 2. maps the authenticated principal to an isolated downstream Google OAuth
    grant and storage boundary;
 3. enforces least-privilege tool and scope policy before tool execution;
