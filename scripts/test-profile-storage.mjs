@@ -38,12 +38,12 @@ if(mode){
  }
  else if(mode==='io') {
   await updateProfile({notes:'canonical synthetic'});const before=await fs.readFile(path,'utf8');
-  const original=fs.access;
+  const original=fs.lstat;
   try {for(const code of ['EACCES','EPERM','EIO']) {
-   fs.access=async(p,...args)=>{if(p===path)throw Object.assign(new Error('synthetic-sensitive-path'),{code});return original.call(fs,p,...args);};
+   fs.lstat=async(p,...args)=>{if(p===path)throw Object.assign(new Error('synthetic-sensitive-path'),{code});return original.call(fs,p,...args);};
    for(const action of [()=>getProfile(),()=>updateProfile({notes:'must not write'}),()=>migrateFromLegacy()]) await assert.rejects(action(),error=>/Stored wellness profile is unavailable/.test(error.message)&&!error.message.includes('synthetic-sensitive-path'));
    assert.equal(await fs.readFile(path,'utf8'),before);
-  }} finally {fs.access=original;}
+  }} finally {fs.lstat=original;}
   const originalOpen=fs.open;
   try {fs.open=async(p,...args)=>{if(p===path)throw Object.assign(new Error('synthetic-sensitive-path'),{code:'EACCES'});return originalOpen.call(fs,p,...args);};
    for(const action of [()=>getProfile(),()=>updateProfile({notes:'must not write'})]) await assert.rejects(action(),error=>/Stored wellness profile is invalid/.test(error.message)&&!error.message.includes('synthetic-sensitive-path'));
@@ -57,6 +57,28 @@ if(mode){
   } finally {fs.mkdir=originalMkdir;}
   assert.equal(await fs.readFile(path,'utf8'),before);
  }
+ else if(mode==='symlinks') {
+  if(process.platform!=='win32') {
+   const candidates=[path,join(process.env.HOME,'.hermes/profiles/delx-wellness/wellness-profile.json'),join(process.env.HOME,'.openclaw-delx-wellness/workspace/wellness-profile.json')];
+   const bytes=JSON.stringify({schema:'delx-wellness-profile/v1',profile:{preferred_name:'synthetic target'}});
+   for(const candidate of candidates) for(const dangling of [false,true]) {
+    await fs.mkdir(dirname(candidate),{recursive:true});
+    const target=candidate+'.synthetic-target';
+    if(!dangling) await fs.writeFile(target,bytes);
+    await fs.symlink(target,candidate);
+    for(const action of [()=>getProfile(),()=>updateProfile({notes:'must not write'}),()=>migrateFromLegacy()]) {
+     await assert.rejects(action(),/Stored wellness profile is unavailable/);
+     assert.equal((await fs.lstat(candidate)).isSymbolicLink(),true);
+     assert.equal(await fs.readlink(candidate),target);
+     if(dangling) await assert.rejects(fs.lstat(target),{code:'ENOENT'});
+     else assert.equal(await fs.readFile(target,'utf8'),bytes);
+     if(candidate!==path) await assert.rejects(fs.lstat(path),{code:'ENOENT'});
+     await assert.rejects(fs.lstat(path+'.lock'),{code:'ENOENT'});
+    }
+    await fs.unlink(candidate);if(!dangling) await fs.unlink(target);
+   }
+  } else console.log('SKIP profile symlink fixtures on Windows: symlink privileges are not assumed');
+ }
  else if(mode==='migration') {await Promise.all([migrateFromLegacy(),updateProfile({notes:'concurrent migration update'})]);assert.equal((await getProfile()).notes,'concurrent migration update');assert.equal((await getProfile()).profile.preferred_name,'legacy synthetic');}
 } else {
  const root=await fs.mkdtemp(join(tmpdir(),'profile-storage-test-'));
@@ -64,8 +86,9 @@ if(mode){
   const home=join(root,'shared');await fs.mkdir(home);
   await Promise.all(Array.from({length:6},(_,i)=>child(home,['write',String(i)])));await child(home,['verify']);
   const start=String(Date.now()+2000);await Promise.all(Array.from({length:8},()=>child(home,['counter',start])));assert.equal(await fs.readFile(join(home,'.delx-wellness/profile.json.counter'),'utf8'),'8');
-  await child(join(root,'bounds'),['boundaries']);await child(join(root,'io'),['io']);await child(join(root,'raw'),['raw']);
+  await child(join(root,'bounds'),['boundaries']);await child(join(root,'io'),['io']);await child(join(root,'raw'),['raw']);await child(join(root,'symlinks'),['symlinks']);
   const legacyHome=join(root,'legacy'), legacyPath=join(legacyHome,'.hermes/profiles/delx-wellness/wellness-profile.json');await fs.mkdir(dirname(legacyPath),{recursive:true});await fs.writeFile(legacyPath,JSON.stringify({schema:'delx-wellness-profile/v1',profile:{preferred_name:'legacy synthetic'}}));await child(legacyHome,['migration']);
   console.log(JSON.stringify({ok:true,suite:'profile-storage',parallelWriters:6,serializedCriticalSections:8,quotaBytes:262144,abandonedLock:'not stolen',migration:'serialized',realData:false}));
  }finally{await fs.rm(root,{recursive:true,force:true});}
 }
+

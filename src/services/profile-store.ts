@@ -213,7 +213,8 @@ function clone<T>(value: T): T {
 
 async function fileExists(path: string): Promise<boolean> {
   try {
-    await fs.access(path);
+    const stat = await fs.lstat(path);
+    if (stat.isSymbolicLink()) throw new Error("Profile symlinks are not supported.");
     return true;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
@@ -288,6 +289,7 @@ async function getProfileUnlocked(): Promise<WellnessProfileDocument> {
 export async function profileTimezone(): Promise<string | undefined> {
   // Read, never migrate: summaries are read-only and must not write the profile.
   for (const path of [PROFILE_PATH, ...LEGACY_PATHS]) {
+    if (!(await fileExists(path))) continue;
     const profile = await readProfileFile(path); // null only on a missing file; invalid stored data fails closed
     if (!profile) continue;
     const timezone = profile.profile.timezone;

@@ -6,15 +6,15 @@ const home = await fs.mkdtemp(join(tmpdir(), 'profile-io-isolated-'));
 const oldHome = process.env.HOME; const oldUserProfile = process.env.USERPROFILE;
 process.env.HOME = home; process.env.USERPROFILE = home;
 const { getProfile, updateProfile, migrateFromLegacy } = await import('../dist/services/profile-store.js');
-const original = { access: fs.access, open: fs.open, writeFile: fs.writeFile };
+const original = { lstat: fs.lstat, open: fs.open, writeFile: fs.writeFile };
 let writes = 0;
 try {
   fs.writeFile = async () => { writes++; throw new Error('Unexpected profile write'); };
-  for (const operation of ['access', 'open']) {
-    fs.access = async () => {};
+  for (const operation of ['lstat', 'open']) {
+    fs.lstat = async () => ({ isSymbolicLink: () => false });
     fs.open = async () => { throw new Error('Unexpected read'); };
     fs[operation] = async () => { throw Object.assign(new Error('synthetic-sensitive-path'), { code: 'EACCES' }); };
-    for (const run of [() => getProfile(), () => updateProfile({ notes: 'synthetic' }), ...(operation === 'access' ? [() => migrateFromLegacy()] : [])]) {
+    for (const run of [() => getProfile(), () => updateProfile({ notes: 'synthetic' }), ...(operation === 'lstat' ? [() => migrateFromLegacy()] : [])]) {
       await assert.rejects(run, error => error instanceof Error && /Stored wellness profile is (invalid|unavailable)/.test(error.message) && !error.message.includes('synthetic-sensitive-path'));
     }
   }
