@@ -60,7 +60,7 @@
     "test:input-limits": "node scripts/input-limits-test.mjs",
     "test:scorecard-gate": "node scripts/scorecard-gate-test.mjs",
     "test:profile-boundaries": "node scripts/test-profile-validation.mjs && node scripts/test-profile-io.mjs && node scripts/test-profile-boundaries.mjs",
-    "test:profile-storage": "node scripts/test-profile-storage.mjs",
+    "test:profile-storage": "node scripts/test-profile-storage.mjs && node scripts/test-profile-timezone-symlinks.mjs",
     "test:http-local-only": "node scripts/test-http-local-only.mjs"
   },
   "keywords": [

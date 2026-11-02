@@ -37,3 +37,9 @@ Checking an absent canonical profile may now create its private parent directory
 and briefly acquire a lock while checking legacy migration. Access failures other
 than ENOENT fail closed without falling back to a legacy file. Filesystem errors
 are reported without exposing local paths or file contents.
+
+Canonical and legacy profile entries must not be symbolic links, including dangling
+links. Presence checks use lstat and fail closed without replacing the link,
+following it, creating a target, or falling back to another profile. Only ENOENT
+means absent. This protects cooperative local file handling, not races caused by
+a malicious process replacing paths or parent directories.
