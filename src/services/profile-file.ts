@@ -33,8 +33,16 @@ export async function withProfileLock<T>(path: string, work: () => Promise<T>): 
   for (;;) {
     try { await fs.mkdir(lock, { mode: 0o700 }); break; }
     catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw new Error("Wellness profile lock is unavailable. Check local file access before retrying.");
-      if (performance.now() >= deadline) throw new Error("Wellness profile is busy or its lock needs recovery. Stop all profile writers before removing an abandoned profile.json.lock directory, then retry.");
+      const code = (error as NodeJS.ErrnoException).code;
+      // Windows can report transient EPERM during concurrent lock-directory
+      // churn. Retry acquisition only: ownership still requires
+      // mkdir success, and persistent permission failures remain fail-closed.
+      const retryWindowsPermission = process.platform === "win32" && code === "EPERM";
+      if (code !== "EEXIST" && !retryWindowsPermission) throw new Error("Wellness profile lock is unavailable. Check local file access before retrying.");
+      if (performance.now() >= deadline) {
+        if (retryWindowsPermission) throw new Error("Wellness profile lock is unavailable. Check local file access before retrying.");
+        throw new Error("Wellness profile is busy or its lock needs recovery. Stop all profile writers before removing an abandoned profile.json.lock directory, then retry.");
+      }
       await delay(25);
     }
   }
