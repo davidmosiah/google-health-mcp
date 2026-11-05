@@ -1,5 +1,9 @@
 ## 0.8.0 - 2026-11-02
 
+### Fixed
+
+- Retry Windows-only `EPERM` during profile lock acquisition within the existing waiting deadline. Exclusive mkdir success remains required before protected work; persistent denials fail closed. Release errors and symlink/canonical-path protections are unchanged.
+
 ### Security and compatibility
 
 - Release the merged input, profile-storage and local-only HTTP hardening. Unsafe remote HTTP bindings, invalid/oversized profile values, profile symlinks, compressed requests and excessive tool arguments are rejected.

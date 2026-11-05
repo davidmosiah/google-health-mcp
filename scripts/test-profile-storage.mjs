@@ -9,6 +9,25 @@ const mode=process.argv[2];
 const clean=(home)=>({PATH:process.env.PATH??'',HOME:home,USERPROFILE:home,...(process.platform==='win32'?{SystemRoot:process.env.SystemRoot??''}:{})});
 function child(home,args){return new Promise((resolve,reject)=>{const p=spawn(process.execPath,[self,...args],{env:clean(home),stdio:['ignore','pipe','pipe']});let out='';p.stdout.on('data',x=>out+=x);p.stderr.on('data',x=>out+=x);p.on('error',reject);p.on('close',code=>code===0?resolve(out):reject(new Error(out)));});}
 if(mode){
+ // Fixture-only diagnostics: never log paths, error messages, or profile content.
+ for (const operation of ['mkdir', 'rmdir']) {
+  const original = fs[operation];
+  fs[operation] = async (target, ...args) => {
+   try { return await original.call(fs, target, ...args); }
+   catch (error) {
+    if (typeof target === 'string' && target.endsWith('profile.json.lock') && error?.code !== 'EEXIST') {
+     const allowed = ['EPERM','EACCES','ENOENT','ENOTDIR','EIO','EINVAL','EBUSY','ENOTEMPTY'];
+     console.error(JSON.stringify({diagnostic:'profile-lock-fs', operation,
+      code:allowed.includes(error?.code)?error.code:'OTHER',
+      errno:Number.isInteger(error?.errno)?error.errno:null,
+      phase:['write','counter','boundaries','io','raw','symlinks','migration','verify'].includes(mode)?mode:'other',
+      writer:mode==='write'?Number(process.argv[3]):null,
+      platform:process.platform,node:process.versions.node,uv:process.versions.uv}));
+    }
+    throw error;
+   }
+  };
+ }
  const { getProfile, updateProfile, getProfilePath, migrateFromLegacy }=await import('../dist/services/profile-store.js');
  const { withProfileLock, MAX_PROFILE_BYTES, readProfileText }=await import('../dist/services/profile-file.js');
  const path=getProfilePath();
@@ -81,11 +100,41 @@ if(mode){
  }
  else if(mode==='migration') {await Promise.all([migrateFromLegacy(),updateProfile({notes:'concurrent migration update'})]);assert.equal((await getProfile()).notes,'concurrent migration update');assert.equal((await getProfile()).profile.preferred_name,'legacy synthetic');}
 } else {
+ async function settleWriters(promises, syntheticHome) {
+  const results = await Promise.allSettled(promises);
+  const errors = results.filter(x => x.status === 'rejected').map(x => x.reason);
+  if (errors.length) {
+   const observedEperm = errors.some(error => error.message.includes('\"operation\":\"mkdir\"') && error.message.includes('\"code\":\"EPERM\"'));
+   if (observedEperm) {
+    // Diagnostic only: all children are closed. Acquire a new lock once and
+    // remove it only if this probe owns it; never make the failed test pass.
+    const lock = join(syntheticHome, '.delx-wellness/profile.json.lock');
+    const code = error => ['EPERM','EACCES','ENOENT','ENOTDIR','EIO','EINVAL','EBUSY','ENOTEMPTY','EEXIST'].includes(error?.code) ? error.code : 'OTHER';
+    let owned = false, acquisition, release = 'not-owned';
+    try { await fs.mkdir(lock, {mode:0o700}); owned = true; acquisition = 'success'; }
+    catch (error) { acquisition = code(error); }
+    finally {
+     if (owned) { try { await fs.rmdir(lock); release = 'success'; } catch (error) { release = code(error); } }
+    }
+    console.error(JSON.stringify({diagnostic:'profile-lock-after-writers',acquisition,release,
+     originalFailurePreserved:true,platform:process.platform,node:process.versions.node,uv:process.versions.uv}));
+   }
+   throw new AggregateError(errors, 'Synthetic profile writer failures; all children settled before cleanup.');
+  }
+ }
  const root=await fs.mkdtemp(join(tmpdir(),'profile-storage-test-'));
  try {
   const home=join(root,'shared');await fs.mkdir(home);
-  await Promise.all(Array.from({length:6},(_,i)=>child(home,['write',String(i)])));await child(home,['verify']);
-  const start=String(Date.now()+2000);await Promise.all(Array.from({length:8},()=>child(home,['counter',start])));assert.equal(await fs.readFile(join(home,'.delx-wellness/profile.json.counter'),'utf8'),'8');
+  await settleWriters(Array.from({length:6},(_,i)=>child(home,['write',String(i)])),home);await child(home,['verify']);
+  const start=String(Date.now()+2000);await settleWriters(Array.from({length:8},()=>child(home,['counter',start])),home);assert.equal(await fs.readFile(join(home,'.delx-wellness/profile.json.counter'),'utf8'),'8');
+  const rounds = Number(process.env.PROFILE_LOCK_STRESS_ROUNDS ?? '1');
+  assert.ok(Number.isInteger(rounds) && rounds >= 1 && rounds <= 50, 'bounded synthetic stress rounds');
+  for (let round = 1; round < rounds; round += 1) {
+   const stressHome = join(root, 'stress-' + round); await fs.mkdir(stressHome);
+   await settleWriters(Array.from({length:6},(_,i)=>child(stressHome,['write',String(i)])),stressHome);
+   await child(stressHome,['verify']);
+  }
+  console.log(JSON.stringify({ok:true,diagnostic:'profile-lock-stress',rounds,writersPerRound:6,platform:process.platform,node:process.versions.node}));
   await child(join(root,'bounds'),['boundaries']);await child(join(root,'io'),['io']);await child(join(root,'raw'),['raw']);await child(join(root,'symlinks'),['symlinks']);
   const legacyHome=join(root,'legacy'), legacyPath=join(legacyHome,'.hermes/profiles/delx-wellness/wellness-profile.json');await fs.mkdir(dirname(legacyPath),{recursive:true});await fs.writeFile(legacyPath,JSON.stringify({schema:'delx-wellness-profile/v1',profile:{preferred_name:'legacy synthetic'}}));await child(legacyHome,['migration']);
   console.log(JSON.stringify({ok:true,suite:'profile-storage',parallelWriters:6,serializedCriticalSections:8,quotaBytes:262144,abandonedLock:'not stolen',migration:'serialized',realData:false}));

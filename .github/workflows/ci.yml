@@ -17,6 +17,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [20, 22, 24]
@@ -28,3 +29,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+        env:
+          PROFILE_LOCK_STRESS_ROUNDS: "20"

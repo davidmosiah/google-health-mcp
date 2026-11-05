@@ -9,3 +9,7 @@ This pre-1.0 minor release tightens formerly accepted configurations. Test your 
 - **Runtime:** Node.js >=20 remains declared. CI coverage is expanded to Node.js 20, 22 and 24; a configured matrix is not evidence that every client/runtime has already passed.
 
 After installing `google-health-mcp-unofficial@0.8.0`, restart the client/server and check its reported version, doctor output, and offline demo before using your own account. Existing running clients do not upgrade automatically. No account authentication or live health API requests are required for the release fixtures.
+
+### Windows concurrent writers
+
+Lock acquisition retries Windows `EPERM` within the same existing five-second cooperative waiting budget. The callback still runs only after an exclusive `mkdir` succeeds; a persistent permission failure ends with a sanitized error and no protected write. Other errors, parent-directory creation, lock release and symlink/canonical-path checks are unchanged. This is not permission escalation, lock stealing, or a guarantee against hostile filesystem races; filesystem operation latency is outside the retry scheduling budget.
