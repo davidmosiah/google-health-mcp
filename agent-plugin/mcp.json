@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "google-health": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "google-health-mcp-unofficial@0.7.8"
+      ],
+      "cwd": "${PLUGIN_DATA}"
+    }
+  }
+}
