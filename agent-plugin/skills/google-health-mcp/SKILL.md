@@ -6,7 +6,7 @@ description: >-
 
 # Google Health
 
-MCP server `google-health` from the `google-health-mcp-unofficial@0.7.8` npm package, run locally through `npx`. It reads steps, heart rate, sleep, activity and body data from Fitbit and Pixel Watch devices. Data source: the official Google Health API v4 (Fitbit and Pixel Watch data) with Google OAuth 2.0.
+MCP server `google-health` from the `google-health-mcp-unofficial@0.8.0` npm package, run locally through `npx`. It reads steps, heart rate, sleep, activity and body data from Fitbit and Pixel Watch devices. Data source: the official Google Health API v4 (Fitbit and Pixel Watch data) with Google OAuth 2.0.
 
 ## Workflow
 
@@ -17,9 +17,9 @@ MCP server `google-health` from the `google-health-mcp-unofficial@0.7.8` npm pac
 ## Setup (the user runs this in a terminal, not in chat)
 
 ```bash
-npx -y google-health-mcp-unofficial@0.7.8 setup --client generic
-npx -y google-health-mcp-unofficial@0.7.8 auth
-npx -y google-health-mcp-unofficial@0.7.8 doctor
+npx -y google-health-mcp-unofficial@0.8.0 setup --client generic
+npx -y google-health-mcp-unofficial@0.8.0 auth
+npx -y google-health-mcp-unofficial@0.8.0 doctor
 ```
 
 `setup` asks for the Google Health developer app client ID and secret and saves them locally (`--client generic` because this plugin already registers the server with Hermes); `auth` opens the Google Health consent page in the browser and stores the OAuth tokens under `~/.google-health-mcp/` with 0600 permissions; `doctor` confirms readiness.
