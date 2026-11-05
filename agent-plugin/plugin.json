@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "google-health-mcp",
-  "version": "0.7.8",
+  "version": "0.8.0",
   "description": "Read the user's Fitbit and Pixel Watch data through the Google Health API v4 via the local google-health MCP server.",
   "author": {
     "name": "David Mosiah",
