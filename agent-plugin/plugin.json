@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "google-health-mcp",
+  "version": "0.7.8",
+  "description": "Read the user's Fitbit and Pixel Watch data through the Google Health API v4 via the local google-health MCP server.",
+  "author": {
+    "name": "David Mosiah",
+    "url": "https://github.com/davidmosiah"
+  },
+  "homepage": "https://github.com/davidmosiah/google-health-mcp",
+  "repository": "https://github.com/davidmosiah/google-health-mcp",
+  "license": "MIT",
+  "keywords": [
+    "fitness",
+    "google-health",
+    "google-health-api",
+    "health",
+    "heart-rate",
+    "hermes",
+    "mcp",
+    "model-context-protocol",
+    "sleep"
+  ]
+}
